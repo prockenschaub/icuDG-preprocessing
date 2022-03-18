@@ -1,0 +1,65 @@
+{
+  "hospital_id": {
+    "description": "source hospital identifier",
+    "min": 1,
+    "max": 1000,
+    "target": "id_tbl",
+    "sources": {
+      "eicu": [
+        {
+          "table": "patient",
+          "class": "col_itm",
+          "val_var": "hospitalid",
+          "callback": "identity_callback"
+        }
+      ],
+      "hirid": [
+        {
+          "table": "general",
+          "class": "col_itm",
+          "val_var": "sex",
+          "callback": "replace_with(1)"
+        }
+      ],
+      "miiv": [
+        {
+          "table": "icustays",
+          "class": "col_itm",
+          "val_var": "hadm_id",
+          "callback": "replace_with(1)"
+        }
+      ]
+    }
+  },
+  "time_to_icu_adm": {
+    "unit": "mins",
+    "min": 0,
+    "target": "id_tbl",
+    "description": "time from hospital adm to ICU adm",
+    "sources": {
+      "eicu": [
+        {
+          "callback": "time_to_callback",
+          "to": "icu_adm",
+          "class": "fun_itm"
+        }
+      ]
+    }
+  },
+  "time_to_icu_disch": {
+    "unit": "mins",
+    "min": 0,
+    "target": "id_tbl",
+    "description": "time from hospital adm to ICU disch",
+    "sources": {
+      "eicu": [
+        {
+          "callback": "time_to_callback",
+          "to": "icu_disch",
+          "class": "fun_itm"
+        }
+      ]
+    }
+  }
+}
+
