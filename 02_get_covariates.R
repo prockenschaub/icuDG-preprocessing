@@ -9,9 +9,18 @@ dict <- load_dictionary(src)
 src <- "mimic"
 
 
-# ------------------------------------------------------------------------------
-# Vital signs
-#
+# Static -----------------------------------------------------------------------
+
+static <- load_concepts(
+  c("age", "sex", "weight", "height"), 
+  src = src,
+  merge = FALSE
+)
+
+write_rds(static, glue("derived/{src}/static.rds"))
+
+# Vital signs ------------------------------------------------------------------
+# 
 # heart rate (hr): no issues.
 # oxygen saturation (o2sat): 6% missing, which is mostly due to eicu where 
 #   this variable is stored in wide format (together with the more frequently
@@ -38,8 +47,8 @@ write_rds(vitals, glue("derived/{src}/vitals.rds"))
 
 
 
-# ------------------------------------------------------------------------------
-# Laboratory tests
+# Laboratory tests -------------------------------------------------------------
+# 
 #
 # * Base excess (be): no issues.
 # * Bicarbonate (bicar): no issues.
@@ -75,7 +84,6 @@ write_rds(vitals, glue("derived/{src}/vitals.rds"))
 #   frequently).
 # INR (inr_pt): thresholding issue, particularly in HiRID
 
-
 labs <- c("alp", "ast", "be", "bicar", "bili", "bili_dir", "bun", "ca", "cl", 
           "crea", "fgn", "fio2", "glu", "hct", "hgb", "inr_pt", "k", "lact", 
           "mg", "pco2", "ph", "phos", "plt", "ptt", "tri", "tnt",  "wbc"
@@ -88,3 +96,26 @@ labs <- c("alp", "ast", "be", "bicar", "bili", "bili_dir", "bun", "ca", "cl",
   )
 
 write_rds(labs, glue("derived/{src}/labs.rds"))
+
+
+# Scores ------------------------------------------------------------------
+
+scores <- load_concepts(
+  c("mews", "news", "qsofa", "rass", "sirs"),
+  src = src,
+  merge = FALSE,
+  interval = hours(1L)
+)
+
+write_rds(scores, glue("derived/{src}/scores.rds"))
+
+
+# Auxiliary --------------------------------------------------------------------
+
+aux <- load_concepts(
+  c("los_icu"),
+  src = src,
+  merge = FALSE
+)
+
+write_rds(aux, glue("derived/{src}/aux.rds"))
