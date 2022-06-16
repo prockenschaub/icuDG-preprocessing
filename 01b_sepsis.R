@@ -129,45 +129,6 @@ full_join(sers, heisl, by = "icustay_id") %>%
 
 
 
-cohort <- load_id(mimic$icustays) %>% 
-  select(icustay_id, hadm_id, subject_id, intime, outtime, los)
-nrow(cohort)
-
-excl_age <- age %>% 
-  filter(age < 1)
-nrow(excl_age)
-
-cohort <- cohort %>% 
-  anti_join(excl_age, by = "icustay_id")
-nrow(cohort)
-
-excl_outside <- sep3 %>% 
-  inner_join(cohort, by = "icustay_id") %>% 
-  filter(charttime < intime | outtime < charttime)
-nrow(excl_outside)
-
-cohort <- cohort %>% 
-  anti_join(excl_outside, by = "icustay_id")
-nrow(cohort)
-
-excl_window <- sep3 %>% 
-  semi_join(cohort, by = "icustay_id") %>% 
-  filter(charttime < 4 | charttime > 168)
-nrow(excl_window)
-
-cohort <- cohort %>% 
-  anti_join(excl_window, by = "icustay_id")
-nrow(cohort)
-
-excl_los <- los_icu %>% 
-  semi_join(cohort, by = "icustay_id") %>% 
-  filter(los_icu < 6/24)
-
-cohort <- cohort %>% 
-  anti_join(excl_los, by = "icustay_id")
-nrow(cohort)
-
-
 
 ricu:::aggregate.cncpt()
 
@@ -175,8 +136,4 @@ ricu:::aggregate.cncpt()
 load_concepts("map", src = "mimic_demo", interval = mins(1L))
 
 # Get basic information on all patients ----------------------------------------
-
-age <- load_from_src("age") 
-sex <- load_from_src("sex")
-los_icu <- load_from_src("los_icu")
 
