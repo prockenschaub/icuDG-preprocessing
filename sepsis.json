@@ -1,0 +1,76 @@
+{
+  "sep3": {
+    "type": "task"
+    "description": "hourly sepsis prediction",
+    "time_unit": "hours",
+    "time_step": 1,
+    "time_max": 168,
+    "input": {
+      "type": "dynamic-sequential",
+      "concepts": ["dbp", "hr", "map", "o2sat", "resp", "sbp", "temp"]  
+    },
+    "target": {
+      "type": "dynamic-sequential",
+      "concepts": "sep3"
+    }
+    "exclusions": ["extreme_age", "low_prevalence", "los_lt_24h", "no_obs"] 
+  },
+  
+  
+  "extreme_age": {
+    "type": "exclusion",
+    "description": "aged < 18",
+    "steps": [
+      ["load", "age"],
+      ["filter", ". < 18"]    
+    ]
+  },
+  "low_prevalence": {
+    "type": "exclusion",
+    "description": "less than 15% per hospital",
+    "steps": [
+      ["load", "target"]
+      ["function", "prevalence"],
+      ["filter", ". < 0.15"]    
+    ]
+  }, 
+  "before_icu": {
+    "type": "exclusion",
+    "description": "sepsis onset before ICU admission",
+    "steps": [
+      ["load", "target"],
+      ["summary", "first"],
+      ["filter", ". < 0", "index_col"]    
+    ]
+  }, 
+  "outside_6_168": {
+    "type": "exclusion",
+    "description": "",
+    "steps": [
+      ["load", "target"],
+      ["summary", "first"],
+      ["filter", "~ . < 4 | . > 168", "index_col"]
+    ]
+  },
+  "lt_4_measures": {
+    "type": "exclusion",
+    "description": "",
+    "steps": [
+      ["load", "input"],
+      ["summary", "count"],
+      ["filter", "~ . < 4"]
+    ]
+  },
+  "gt_12h_gap": {
+    "type": "exclusion",
+    "description": "",
+    "steps": [
+      ["load", "input"],
+      ["function", "map_to_grid"],
+      ["summary", "obs_per_row"],
+      ["map", "~ . > 0"],
+      ["function", "longest_rle", "FALSE"],
+      ["filter", "~ . >= 12"]
+    ]
+  },
+}

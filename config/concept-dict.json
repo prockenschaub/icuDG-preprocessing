@@ -1,0 +1,390 @@
+{
+  "adm_time": {
+    "unit": "mins",
+    "min": 0,
+    "target": "id_tbl",
+    "description": "hours from hospital adm to ICU adm",
+    "sources": {
+      "eicu": [
+        {
+          "callback": "time_to_callback",
+          "to": "icu_adm",
+          "class": "fun_itm"
+        }
+      ],
+      "eicu_demo": [
+        {
+          "callback": "time_to_callback",
+          "to": "icu_adm",
+          "class": "fun_itm"
+        }
+      ],
+      "mimic": [
+        {
+          "callback": "time_to_callback",
+          "to": "icu_adm", 
+          "class": "fun_itm"
+        }
+      ],
+      "mimic_demo": [
+        {
+          "callback": "time_to_callback",
+          "to": "icu_adm", 
+          "class": "fun_itm"
+        }
+      ]
+    }
+  },
+  "hospital_id": {
+    "description": "source hospital identifier",
+    "min": 1,
+    "max": 1000,
+    "target": "id_tbl",
+    "sources": {
+      "eicu": [
+        {
+          "table": "patient",
+          "class": "col_itm",
+          "val_var": "hospitalid",
+          "callback": "identity_callback"
+        }
+      ],
+      "eicu_demo": [
+        {
+          "table": "patient",
+          "class": "col_itm",
+          "val_var": "hospitalid",
+          "callback": "identity_callback"
+        }
+      ],
+      "hirid": [
+        {
+          "table": "general",
+          "class": "col_itm",
+          "val_var": "sex",
+          "callback": "replace_with(1)"
+        }
+      ],
+      "mimic": [
+        {
+          "table": "icustays",
+          "class": "col_itm",
+          "val_var": "hadm_id",
+          "callback": "replace_with(1)"
+        }
+      ],
+      "mimic_demo": [
+        {
+          "table": "icustays",
+          "class": "col_itm",
+          "val_var": "hadm_id",
+          "callback": "replace_with(1)"
+        }
+      ],
+      "miiv": [
+        {
+          "table": "icustays",
+          "class": "col_itm",
+          "val_var": "hadm_id",
+          "callback": "replace_with(1)"
+        }
+      ]
+    }
+  },
+  "spo2": {
+    "unit": ["%", "% Sat."],
+    "min": 50,
+    "max": 100,
+    "description": "oxygen saturation (pulse oximetry)",
+    "category": "respiratory",
+    "sources": {
+      "eicu": [
+        {
+          "table": "vitalperiodic",
+          "val_var": "sao2",
+          "unit_val": "%",
+          "class": "col_itm"
+        }
+      ],
+      "eicu_demo": [
+        {
+          "table": "vitalperiodic",
+          "val_var": "sao2",
+          "unit_val": "%",
+          "class": "col_itm"
+        }
+      ],
+      "mimic": [
+        {
+          "ids": [646, 220277],
+          "table": "chartevents",
+          "sub_var": "itemid"
+        }
+      ],
+      "mimic_demo": [
+        {
+          "ids": [646, 220277],
+          "table": "chartevents",
+          "sub_var": "itemid"
+        }
+      ]
+    }
+  },
+  "sao2": {
+    "unit": ["%", "% Sat."],
+    "min": 50,
+    "max": 100,
+    "description": "oxygen saturation (arterial blood)",
+    "category": "respiratory",
+    "sources": {
+      "eicu": [
+        {
+          "ids": "O2 Sat (%)",
+          "table": "lab",
+          "sub_var": "labname"
+        }
+      ],
+      "eicu_demo": [
+        {
+          "ids": "O2 Sat (%)",
+          "table": "lab",
+          "sub_var": "labname"
+        }
+      ],
+      "mimic": [
+        {
+          "ids": [834, 220227],
+          "table": "chartevents",
+          "sub_var": "itemid"
+        }
+      ],
+      "mimic_demo": [
+        {
+          "ids": [834, 220227],
+          "table": "chartevents",
+          "sub_var": "itemid"
+        }
+      ]
+    }
+  },
+  "micu": {
+    "class": "lgl_cncpt",
+    "target": "id_tbl",
+    "description": "medical ICU",
+    "sources": {
+      "eicu": [
+        {
+          "ids": ["Cardiac ICU", "MICU", "Neuro ICU"],
+          "table": "patient",
+          "sub_var": "unittype",
+          "callback": "transform_fun(set_val(TRUE))"
+        }
+      ],
+      "eicu_demo": [
+        {
+          "ids": ["Cardiac ICU", "MICU", "Neuro ICU"],
+          "table": "patient",
+          "sub_var": "unittype",
+          "callback": "transform_fun(set_val(TRUE))"
+        }
+      ],
+      "mimic": [
+        {
+          "ids": ["CCU", "MICU"],
+          "table": "icustays",
+          "sub_var": "first_careunit",
+          "callback": "transform_fun(set_val(TRUE))"
+        }
+      ],
+      "mimic_demo": [
+        {
+          "ids": ["CCU", "MICU"],
+          "table": "icustays",
+          "sub_var": "first_careunit",
+          "callback": "transform_fun(set_val(TRUE))"
+        }
+      ]
+    }
+  },
+  "sicu": {
+    "class": "lgl_cncpt",
+    "target": "id_tbl",
+    "description": "surgical ICU",
+    "sources": {
+      "eicu": [
+        {
+          "ids": ["CCU-CTICU", "CSICU", "CTICU", "Med-Surg ICU", "SICU"],
+          "table": "patient",
+          "sub_var": "unittype",
+          "callback": "transform_fun(set_val(TRUE))"
+        }
+      ],
+      "eicu_demo": [
+        {
+          "ids": ["CCU-CTICU", "CSICU", "CTICU", "Med-Surg ICU", "SICU"],
+          "table": "patient",
+          "sub_var": "unittype",
+          "callback": "transform_fun(set_val(TRUE))"
+        }
+      ],
+      "mimic": [
+        {
+          "ids": ["CSRU", "SICU", "TSICU"],
+          "table": "icustays",
+          "sub_var": "first_careunit",
+          "callback": "transform_fun(set_val(TRUE))"
+        }
+      ],
+      "mimic_demo": [
+        {
+          "ids": ["CSRU", "SICU", "TSICU"],
+          "table": "icustays",
+          "sub_var": "first_careunit",
+          "callback": "transform_fun(set_val(TRUE))"
+        }
+      ]
+    }
+  },
+  "adh_dur": {
+    "description": "vasopressin duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+      "hirid": [
+        {
+          "ids": [112, 113],
+          "table": "pharma",
+          "sub_var": "pharmaid",
+          "grp_var": "infusionid",
+          "callback": "hirid_duration"
+        }
+      ]
+    }
+  },
+  "phn_dur": {
+    "description": "phenylephrine duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+    
+    }
+  },
+  "levo_dur": {
+    "description": "levosimendan duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+      "hirid": [
+        {
+          "ids": 1000606,
+          "table": "pharma",
+          "sub_var": "pharmaid",
+          "grp_var": "infusionid",
+          "callback": "hirid_duration"
+        }
+      ]
+    }
+  },
+  "milrin_dur": {
+    "description": "milrinone duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+      "hirid": [
+        {
+          "ids": 1000441,
+          "table": "pharma",
+          "sub_var": "pharmaid",
+          "grp_var": "infusionid",
+          "callback": "hirid_duration"
+        }
+      ]
+    }
+  },
+  "teophyllin_dur": {
+    "description": "theophyllin duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+      "hirid": [
+        {
+          "ids": [1000706, 1000707, 1000698, 1000267],
+          "table": "pharma",
+          "sub_var": "pharmaid",
+          "grp_var": "infusionid",
+          "callback": "hirid_duration"
+        }
+      ]
+    }
+  },
+  "circ_fail": {
+    "description": "circulatory failure",
+    "concepts": ["map", "cf_treat", "lact"],
+    "category": "outcome",
+    "callback": "circ_fail",
+    "class": "rec_cncpt"
+  },
+  "cf_treat": {
+    "description": "treatment for circulatory faiure (vasopressors/inotropes)",
+    "category": "medications",
+    "concepts": ["epi_dur", "norepi_dur", "dopa_dur", "dobu_dur", "adh_dur", "phn_dur", 
+                 "levo_dur", "milrin_dur", "teophyllin_dur"],
+    "callback": "cf_treat",
+    "class": "rec_cncpt"
+  },
+  "lact_all": {
+    "unit": "mmol/L",
+    "min": 0,
+    "max": 50,
+    "description": "lactate (artierial and venous)",
+    "category": "blood gas",
+    "sources": {
+      "hirid": [
+        {
+          "ids": [24000524, 24000732, 24000485],
+          "table": "observations",
+          "sub_var": "variableid",
+          "class": "hrd_itm"
+        }
+      ]
+    }
+  },
+  "map_inv": {
+    "unit": ["mmHg", "mm Hg"],
+    "min": 0,
+    "max": 250,
+    "description": "invasive mean arterial pressure",
+    "category": "vitals",
+    "sources": {
+      "hirid": [
+        {
+          "ids": 110,
+          "table": "observations",
+          "sub_var": "variableid",
+          "class": "hrd_itm"
+        }
+      ]
+    }
+  },
+  "mech_circ": {
+    "description": "mechanical circulatory support",
+    "class": "lgl_cncpt",
+    "target": "id_tbl",
+    "category": "circulatory",
+    "sources": {
+      "mimic": [
+        {      
+          "ids": ["3752", "3760", "3765", "3766", "3768"],
+          "table": "procedures_icd",
+          "sub_var": "icd9_code",
+          "val_var": "seq_num",
+          "callback": "transform_fun(set_val(TRUE))"
+        }      
+      ]
+    }
+  }
+}
+
+
+
+

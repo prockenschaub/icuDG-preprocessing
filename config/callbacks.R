@@ -1,16 +1,9 @@
 
-
-replace_with <- function(constant){
-  fun <- function(x, ...){
-    val_var <- rlang::dots_list(...)$val_var
-    x[, val_var] <- constant
-    x
-  }
-  return(fun)
-}
+source("config/callback-circ-fail.R")
 
 
-
+# ------------------------------------------------------------------------------
+# Admission time functions
 time_to_callback <- function (x, id_type, interval) 
 {
   to <- x[["to"]]
@@ -24,6 +17,17 @@ time_to_callback <- function (x, id_type, interval)
   } else if (to == "icu_disch") {
     res[, `:=`(c("val_var", "start", "end"), list(get("end"), NULL, NULL))]
   }
-  res[, `:=`("val_var", list(as_min(get("val_var"))))]
+  res[, `:=`("val_var", list(get("val_var")))]
   res
 }
+
+
+
+# ------------------------------------------------------------------------------
+# MIMIC IV specific functions
+
+miiv_death <- function(x, val_var, sub_var, env, ...) {
+  
+}
+
+
