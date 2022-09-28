@@ -45,16 +45,14 @@
         {
           "table": "patient",
           "class": "col_itm",
-          "val_var": "hospitalid",
-          "callback": "identity_callback"
+          "val_var": "hospitalid"
         }
       ],
       "eicu_demo": [
         {
           "table": "patient",
           "class": "col_itm",
-          "val_var": "hospitalid",
-          "callback": "identity_callback"
+          "val_var": "hospitalid"
         }
       ],
       "hirid": [
@@ -62,7 +60,7 @@
           "table": "general",
           "class": "col_itm",
           "val_var": "sex",
-          "callback": "replace_with(1)"
+          "callback": "transform_fun(set_val(1))"
         }
       ],
       "mimic": [
@@ -70,7 +68,7 @@
           "table": "icustays",
           "class": "col_itm",
           "val_var": "hadm_id",
-          "callback": "replace_with(1)"
+          "callback": "transform_fun(set_val(1))"
         }
       ],
       "mimic_demo": [
@@ -78,7 +76,7 @@
           "table": "icustays",
           "class": "col_itm",
           "val_var": "hadm_id",
-          "callback": "replace_with(1)"
+          "callback": "transform_fun(set_val(1))"
         }
       ],
       "miiv": [
@@ -86,7 +84,7 @@
           "table": "icustays",
           "class": "col_itm",
           "val_var": "hadm_id",
-          "callback": "replace_with(1)"
+          "callback": "transform_fun(set_val(1))"
         }
       ]
     }

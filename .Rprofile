@@ -1,5 +1,10 @@
-Sys.setenv(RICU_CONFIG_PATH = "ricu")
+# RICU paths and definitions
+Sys.setenv(RICU_CONFIG_PATH = "config")
+Sys.setenv(RICU_DATA_PATH = "/Users/patrick/datasets/ricu")
 
-source("ricu/callbacks.R")
+source("config/callbacks.R")
 
-src <- c("miiv", "eicu", "hirid")
+
+#### -- Packrat Autoloader (version 0.8.1) -- ####
+source("packrat/init.R")
+#### -- End Packrat Autoloader -- ####
