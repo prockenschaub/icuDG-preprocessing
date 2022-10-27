@@ -1,0 +1,82 @@
+{
+  "adh_dur": {
+    "description": "vasopressin duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+      "hirid": [
+        {
+          "ids": [112, 113],
+          "table": "pharma",
+          "sub_var": "pharmaid",
+          "grp_var": "infusionid",
+          "callback": "hirid_duration"
+        }
+      ]
+    }
+  },
+  "phn_dur": {
+    "description": "phenylephrine duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+    
+    }
+  },
+  "levo_dur": {
+    "description": "levosimendan duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+      "hirid": [
+        {
+          "ids": 1000606,
+          "table": "pharma",
+          "sub_var": "pharmaid",
+          "grp_var": "infusionid",
+          "callback": "hirid_duration"
+        }
+      ]
+    }
+  },
+  "milrin_dur": {
+    "description": "milrinone duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+      "hirid": [
+        {
+          "ids": 1000441,
+          "table": "pharma",
+          "sub_var": "pharmaid",
+          "grp_var": "infusionid",
+          "callback": "hirid_duration"
+        }
+      ]
+    }
+  },
+  "teophyllin_dur": {
+    "description": "theophyllin duration",
+    "category": "medications",
+    "aggregate": "max",
+    "sources": {
+      "hirid": [
+        {
+          "ids": [1000706, 1000707, 1000698, 1000267],
+          "table": "pharma",
+          "sub_var": "pharmaid",
+          "grp_var": "infusionid",
+          "callback": "hirid_duration"
+        }
+      ]
+    }
+  },
+  "cf_treat": {
+    "description": "treatment for circulatory failure (vasopressors/inotropes)",
+    "category": "medications",
+    "concepts": ["epi_dur", "norepi_dur", "dopa_dur", "dobu_dur", "adh_dur", 
+                 "phn_dur", "levo_dur", "milrin_dur", "teophyllin_dur"],
+    "callback": "cf_treat",
+    "class": "rec_cncpt"
+  }
+}
