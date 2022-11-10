@@ -13,7 +13,7 @@ source("R/obs_time.R")
 
 # Create a parser
 p <- arg_parser("Extract and preprocess ICU sepsis data")
-p <- add_argument(p, "--src", help="source database", default="eicu_demo")
+p <- add_argument(p, "--src", help="source database", default="mimic_demo")
 argv <- parse_args(p)
 
 src <- argv$src 
@@ -27,7 +27,7 @@ cncpt_env <- new.env()
 time_flow <- "sequential" # sequential / continuous
 time_unit <- hours
 freq <- 1L
-max_len <- 7 * 24  # = 7 days
+max_len <- hours(7 * 24)  # = 7 days
 
 static_vars <- c("age", "sex", "height", "weight")
 
@@ -37,7 +37,6 @@ dynamic_vars <- c("alb", "alp", "alt", "ast", "be", "bicar", "bili", "bili_dir",
           "lymph", "map", "mch", "mchc", "mcv", "methb", "mg", "na", "neut", 
           "o2sat", "pco2", "ph", "phos", "plt", "po2", "ptt", "resp", "sbp", 
           "temp", "tnt", "urine", "wbc")
-
 
 # cross-sectional vs longitudinal
 predictor_type <- "dynamic" # static / dynamic
@@ -52,10 +51,10 @@ patients <- as_win_tbl(patients, index_var = "start", dur_var = "end", interval 
 
 args <- list(cache = TRUE)
 if (src %in% c("eicu", "eicu_demo", "hirid")) {
-  args <- c(args, list(si_mode = "abx", abx_min_count = 2, abx_count_win = hours(24L)))
+  args <- c(args, list(si_mode = "abx"))
 }
 
-outc <- do.call(load_step, args = c(list(x = dict["sep3"]), args))
+outc <- do.call(load_step, args = c(list(x = dict["sep3_alt"]), args))
 outc <- summary_step(outc, "first")
 
 
@@ -67,57 +66,17 @@ stop_obs_at(patients, offset = ricu:::re_time(max_len, time_unit(freq)), by_ref 
 
 # Apply exclusion criteria ------------------------------------------------
 
-# 1. Age < 18
-x <- load_step("age")
-x <- filter_step(x, ~ . < 18)
+# 1 Invalid LoS
+excl1 <- patients[end < 0, id_vars(patients), with = FALSE]
 
-excl1 <- unique(x[, id_vars(x), with = FALSE])
-
-
-# 2. Low sepsis prevalence
-prevalence <- function(concept, hospital_ids, ...) {
-  assert_that(is_logical(data_col(concept)))
-  var <- data_var(concept)
-  cncpt_per_hosp <- concept[hospital_ids]
-  cncpt_per_hosp[, (var) := ricu::replace_na(.SD[[var]], FALSE)]
-  prevalence <- cncpt_per_hosp[, .(prev = mean(.SD[[var]])), by = hospital_id]
-  res <- merge(hospital_ids, prevalence, by = "hospital_id")
-  rm_cols(res, "hospital_id")
-}
-
-x1 <- do.call(load_step, args = c(list(x = dict["sep3"]), args))
-x2 <- summary_step(x1, "exists")
-x3 <- load_step(dict["hospital_id"])
-x4 <- function_step(x2, prevalence, hospital_ids = x3)
-x5 <- filter_step(x4, ~ . < 0.15)
-
-excl2 <- unique(x5[, id_vars(x), with = FALSE])
-
-
-# 3. Sepsis onset before ICU
-x1 <- do.call(load_step, args = c(list(x = dict["sep3"]), args))
-x2 <- summary_step(x1, "first")
-x3 <- filter_step(x2, ~ . < 0, col = index_col)
-
-excl3 <- unique(x3[, id_vars(x), with = FALSE])
-
-
-# 4. Sepsis onset outside of [4h, 168h]
-x1 <- do.call(load_step, args = c(list(x = dict["sep3"]), args))
-x2 <- summary_step(x1, "first")
-x3 <- filter_step(x2, ~ . < 4 | . > 168, col = index_col)
-
-excl4 <- unique(x3[, id_vars(x), with = FALSE])
-
-
-# 5. Stay <6h
+# 2 Stay <6h
 x <- load_step("los_icu")
 x <- filter_step(x, ~ . < 6 / 24)
 
-excl5 <- unique(x[, id_vars(x), with = FALSE])
+excl2 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 6. Less than 4 measurements
+# 3. Less than 4 measurements
 n_obs_per_row <- function(x, ...) {
   # TODO: make sure this does not change by reference if a single concept is provided
   obs <- data_vars(x)
@@ -129,10 +88,10 @@ x <- load_step(dict[dynamic_vars], cache = TRUE)
 x <- summary_step(x, "count", drop_index = TRUE)
 x <- filter_step(x, ~ . < 4)
 
-excl6 <- unique(x[, id_vars(x), with = FALSE])
+excl3 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 7. More than 12 hour gaps between measurements
+# 4. More than 12 hour gaps between measurements
 map_to_grid <- function(x) {
   grid <- ricu::expand(patients)
   merge(grid, x, all.x = TRUE)
@@ -149,15 +108,59 @@ x <- function_step(x, map_to_grid)
 x <- function_step(x, n_obs_per_row)
 x <- mutate_step(x, ~ . > 0)
 x <- function_step(x, longest_rle, val = FALSE)
-x <- filter_step(x, ~ . >= 12)
+x <- filter_step(x, ~ . > 12)
 
-excl7 <- unique(x[, id_vars(x), with = FALSE])
+excl4 <- unique(x[, id_vars(x), with = FALSE])
+
+
+# 5. Age < 18
+x <- load_step("age")
+x <- filter_step(x, ~ . < 18)
+
+excl5 <- unique(x[, id_vars(x), with = FALSE])
+
+
+# 6. Low sepsis prevalence
+prevalence <- function(concept, hospital_ids, ...) {
+  assert_that(is_logical(data_col(concept)))
+  var <- data_var(concept)
+  cncpt_per_hosp <- concept[hospital_ids]
+  cncpt_per_hosp[, (var) := ricu::replace_na(.SD[[var]], FALSE)]
+  prevalence <- cncpt_per_hosp[, .(prev = mean(.SD[[var]])), by = hospital_id]
+  res <- merge(hospital_ids, prevalence, by = "hospital_id")
+  rm_cols(res, "hospital_id")
+}
+
+if (src %in% c("eicu", "eicu_demo")) {
+  x1 <- do.call(load_step, args = c(list(x = dict["sep3_alt"]), args))
+  x2 <- summary_step(x1, "exists")
+  x3 <- load_step(dict["hospital_id"])
+  x4 <- function_step(x2, prevalence, hospital_ids = x3)
+  x5 <- filter_step(x4, ~ . == 0)
+  
+  excl6 <- unique(x5[, id_vars(x), with = FALSE])
+} else {
+  excl6 <- excl1[0]
+}
+
+
+# 7. Sepsis onset before 6h in the ICU
+x1 <- load_step(dict["sep3_alt"], cache = TRUE)
+x2 <- summary_step(x1, "first")
+x3 <- filter_step(x2, ~ . < 6, col = index_col)
+
+excl7 <- unique(x3[, id_vars(x), with = FALSE])
+
+
 
 
 
 # Apply exclusions
-patients <- patients[!excl1][!excl2][!excl3][!excl4][!excl5][!excl6][!excl7]
+patients <- exclude(patients, mget(paste0("excl", 1:7)))
+attrition <- as.data.table(patients[c("incl_n", "excl_n_total", "excl_n")])
+patients <- patients[['incl']]
 patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
+
 
 
 # Prepare data ------------------------------------------------------------
@@ -171,6 +174,7 @@ assert_that(outcome_type == "dynamic", time_flow == "sequential")
 
 outc_fmt <- function_step(outc, map_to_grid)
 outc_fmt <- function_step(outc_fmt, outcome_window, window = c(6L, 6L))
+outc_fmt <- function_step(outc_fmt, set_window, value = NA, window = c(0L, 6L))
 rename_cols(outc_fmt, c("stay_id", "time", "label"), by_ref = TRUE)
 
 dyn_fmt <- function_step(dyn, map_to_grid)
@@ -191,4 +195,5 @@ if (!dir.exists(out_path)) {
 arrow::write_parquet(outc_fmt, paste0(out_path, "/outc.parquet"))
 arrow::write_parquet(dyn_fmt, paste0(out_path, "/dyn.parquet"))
 arrow::write_parquet(sta_fmt, paste0(out_path, "/sta.parquet"))
+fwrite(attrition, paste0(out_path, "/attrition.csv"))
 

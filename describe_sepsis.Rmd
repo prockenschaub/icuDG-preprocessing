@@ -14,7 +14,7 @@ library(gtsummary)
 library(testthat)
 
 conf <- ricu:::read_json("config.json")
-srcs <- c("mimic", "eicu", "hirid", "aumc")
+srcs <- c("mimic", "miiv", "eicu", "hirid", "aumc")
 
 knitr::opts_chunk$set(echo=TRUE)
 
@@ -52,7 +52,7 @@ outc_bin <- outc[, .(label = max(label), onset = if(any(label == 1)) min(time[la
 expect_equal(sum(is.na(outc$label)), 0)                    # no missingness in the outcome
 expect_equal(nrow(static), nrow(distinct(outc[, .(src, stay_id)])))                     # every patient has some static data
 expect_equal(nrow(distinct(static[, .(src, stay_id)])), nrow(distinct(dyn[, .(src, stay_id)])))  # every patient has some dynamic data
-expect_equal(max(count(dyn, src, stay_id)$n), 193)       # no more than 193 time steps (1 + 7 * 24 + 24)
+expect_equal(max(count(dyn, src, stay_id)$n), 169)       # no more than 193 time steps (1 + 7 * 24 + 24)
 
 ```
 

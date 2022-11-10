@@ -74,7 +74,7 @@ filter_step.data.table <- function(x, condition, col = data_col, ...) {
     
     x[unique(xsel)]
   } else {
-    f <- as_function(condition)
+    f <- rlang::as_function(condition)
     
     if (is.character(col)) {
       col <- function(x) get(col, -2L)
@@ -84,12 +84,12 @@ filter_step.data.table <- function(x, condition, col = data_col, ...) {
 }
 
 
-mutate_step <- function(x, f, by_ref = FALSE, ...) {
-  f <- as_function(f)
+mutate_step <- function(x, f, by = character(0), by_ref = FALSE, ...) {
+  f <- rlang::as_function(f)
   if (!by_ref) {
     x <- copy(x)
   }
-  x[, c(data_vars(x)) := lapply(.SD, f, ...), .SDcols = data_vars(x)]
+  x[, c(data_vars(x)) := lapply(.SD, f, ...), .SDcols = data_vars(x), by = c(by)]
 }
 
 
@@ -151,6 +151,7 @@ summary_last <- function(x, drop_index = FALSE, ...){
   assert_that(is_ts_tbl(x))
   x[, .SD[.N], by=c(id_var(x))]
 }
+
 
 
 function_step <- function(x, f, ...) {

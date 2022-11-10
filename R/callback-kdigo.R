@@ -1,25 +1,4 @@
 
-kdigo <- function(..., keep_components = FALSE, interval = NULL) {
-  cnc <- c("kdigo_crea", "kdigo_urine")
-  res <- ricu:::collect_dots(cnc, interval, ...)
-  kdigo_crea <- res[["kdigo_crea"]]
-  kdigo_urine <- res[["kdigo_urine"]]
-  
-  idc <- id_vars(kdigo_crea)
-  indc <- index_var(kdigo_crea)
-  idu <- id_vars(kdigo_urine)
-  indu <- index_var(kdigo_urine)
-  
-  res <- merge(kdigo_crea, kdigo_urine, by.x = c(idc, indc), by.y = c(idu, indu), all = TRUE)
-  res[, kdigo := pmax(kdigo_crea, kdigo_urine, na.rm = TRUE)]
-  
-  if (!keep_components) {
-    cols_rm <- c("kdigo_crea", "kdigo_urine")
-    res <- rm_cols(res, cols_rm, skip_absent = TRUE, by_ref = TRUE)
-  }
-  res
-}
-
 kdigo_crea <- function(..., keep_components = FALSE, interval = NULL) {
   cnc <- c("crea")
   crea <- ricu:::collect_dots(cnc, interval, ...)
@@ -60,55 +39,6 @@ kdigo_crea <- function(..., keep_components = FALSE, interval = NULL) {
 }
 
 
-kdigo_urine <- function(..., keep_components = FALSE, interval = NULL) {
-  cnc <- c("urine", "weight")
-  res <- ricu:::collect_dots(cnc, interval, ...)
-  urine <- res[["urine"]]
-  weight <- res[["weight"]]
-  
-  id <- id_vars(urine)
-  ind <- index_var(urine)
-  
-  rate_over_period <- function(dur = hours(1L)) {
-    cdur <- as.character(dur)
-    summ <- slide(
-      urine, 
-      list(
-        urine = sum(get("urine"), na.rm = TRUE), 
-        urine_tm = get(!!ind)[.N] - get(!!ind)[1] + 1 # Note: this is conservative and will underestimate tm if there are long gaps between measurements
-      ), 
-      dur,
-      left_closed = FALSE
-    )
-    summ[weight, urine_rt := urine / ifelse(is.na(weight), 75, weight) / as.numeric(urine_tm), on = c(id)]
-    nms <- paste0(c("urine", "urine_tm", "urine_rt"), "_", cdur, "hr")
-    rename_cols(summ, nms, c("urine", "urine_tm", "urine_rt"))
-  }
-  
-  res <- lapply(hours(6L, 12L, 24L), rate_over_period)
-  res <- merge_lst(c(list(urine, weight), res))
-  res[, kdigo_urine := data.table::fcase(
-    get(ind) < 6                             , 0L,
-    urine_tm_24hr >= 12 & urine_rt_24hr < 0.3, 3L,
-    urine_tm_12hr >= 6  & urine_rt_12hr == 0 , 3L,
-    urine_tm_12hr >= 6  & urine_rt_12hr < 0.5, 2L,
-    urine_tm_6hr  >= 3  & urine_rt_6hr  < 0.5, 1L,
-    default = 0L
-  )]
-  
-  cols_rm <- c(
-    "urine_6hr", "urine_12hr", "urine_24hr",
-    "urine_tm_6hr", "urine_tm_12hr", "urine_tm_24hr",
-    "urine_rt_6hr", "urine_rt_12hr", "urine_rt_24hr"
-  )
-  if (!keep_components) {
-    cols_rm <- c(cols_rm, "urine", "weight")
-  }
-  res <- rm_cols(res, cols_rm, skip_absent = TRUE, by_ref = TRUE)
-  res
-}
-
-
 urine_rate <- function(..., max_gap = hours(24L), interval = NULL, id_type = "icustay") {
   # TODO: Does not currently work as a rec_cncpt. For example, currently keep_components = TRUE would lead to 
   #       a situation in which `urine` and not `urine_rate` is passed back. This is likely because `fun_itm`,
@@ -134,7 +64,7 @@ urine_rate <- function(..., max_gap = hours(24L), interval = NULL, id_type = "ic
 }
 
 
-kdigo_urine2 <- function(..., keep_components = FALSE, interval = NULL) {
+kdigo_urine <- function(..., keep_components = FALSE, interval = NULL) {
   cnc <- c("urine_rate", "weight")
   res <- ricu:::collect_dots(cnc, interval, ...)
   urine_rate <- res[["urine_rate"]]
@@ -172,7 +102,29 @@ kdigo_urine2 <- function(..., keep_components = FALSE, interval = NULL) {
 }
 
 
-aki <- function(..., threshold = 1L, keep_components = FALSE) {
+kdigo <- function(..., keep_components = FALSE, interval = NULL) {
+  cnc <- c("kdigo_crea", "kdigo_urine")
+  res <- ricu:::collect_dots(cnc, interval, ...)
+  kdigo_crea <- res[["kdigo_crea"]]
+  kdigo_urine <- res[["kdigo_urine"]]
+  
+  idc <- id_vars(kdigo_crea)
+  indc <- index_var(kdigo_crea)
+  idu <- id_vars(kdigo_urine)
+  indu <- index_var(kdigo_urine)
+  
+  res <- merge(kdigo_crea, kdigo_urine, by.x = c(idc, indc), by.y = c(idu, indu), all = TRUE)
+  res[, kdigo := pmax(kdigo_crea, kdigo_urine, na.rm = TRUE)]
+  
+  if (!keep_components) {
+    cols_rm <- c("kdigo_crea", "kdigo_urine")
+    res <- rm_cols(res, cols_rm, skip_absent = TRUE, by_ref = TRUE)
+  }
+  res
+}
+
+
+aki <- function(..., threshold = 1L, interval = NULL, keep_components = FALSE) {
   
   cnc <- c("kdigo")
   res <- ricu:::collect_dots(cnc, interval, ...)

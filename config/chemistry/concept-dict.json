@@ -1,0 +1,35 @@
+{
+  "alb": {
+    "sources": {
+      "miiv": [
+        {
+          "ids": 53085,
+          "table": "labevents",
+          "sub_var": "itemid"
+        }
+      ]
+    }
+  },
+  "alp": {
+    "sources": {
+      "miiv": [
+        {
+          "ids": 53086,
+          "table": "labevents",
+          "sub_var": "itemid"
+        }
+      ]
+    }
+  },
+  "bili": {
+    "sources": {
+      "miiv": [
+        {
+          "ids": 53089,
+          "table": "labevents",
+          "sub_var": "itemid"
+        }
+      ]
+    }
+  }
+}

@@ -28,7 +28,7 @@ cncpt_env <- new.env()
 time_flow <- "sequential" # sequential / continuous
 time_unit <- hours
 freq <- 1L
-max_len <- 7 * 24  # = 7 days
+max_len <- hours(7 * 24)  # = 7 days
 
 static_vars <- c("age", "sex", "height", "weight")
 
@@ -38,7 +38,7 @@ dynamic_vars <- c("alb", "alp", "alt", "ast", "be", "bicar", "bili", "bili_dir",
                   "lymph", "map", "mch", "mchc", "mcv", "methb", "mg", "na", "neut", 
                   "o2sat", "pco2", "ph", "phos", "plt", "po2", "ptt", "resp", "sbp", 
                   "temp", "tnt", "urine", "wbc")
-
+dynamic_vars <- c('hr', 'sbp', 'dbp', 'map', 'o2sat', 'temp', 'resp')
 
 # cross-sectional vs longitudinal
 predictor_type <- "dynamic" # static / dynamic
@@ -63,14 +63,17 @@ stop_obs_at(patients, offset = ricu:::re_time(max_len, time_unit(freq)), by_ref 
 
 # Apply exclusion criteria ------------------------------------------------
 
-# 1. Stay <6h
+# 1 Invalid LoS
+excl1 <- patients[end < 0, id_vars(patients), with = FALSE]
+
+# 2 Stay <6h
 x <- load_step("los_icu")
 x <- filter_step(x, ~ . < 6 / 24)
 
-excl1 <- unique(x[, id_vars(x), with = FALSE])
+excl2 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 2. Less than 4 measurements
+# 3. Less than 4 measurements
 n_obs_per_row <- function(x, ...) {
   # TODO: make sure this does not change by reference if a single concept is provided
   obs <- data_vars(x)
@@ -82,10 +85,10 @@ x <- load_step(dict[dynamic_vars], cache = TRUE)
 x <- summary_step(x, "count", drop_index = TRUE)
 x <- filter_step(x, ~ . < 4)
 
-excl2 <- unique(x[, id_vars(x), with = FALSE])
+excl3 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 3. More than 12 hour gaps between measurements
+# 4. More than 12 hour gaps between measurements
 map_to_grid <- function(x) {
   grid <- ricu::expand(patients)
   merge(grid, x, all.x = TRUE)
@@ -102,28 +105,49 @@ x <- function_step(x, map_to_grid)
 x <- function_step(x, n_obs_per_row)
 x <- mutate_step(x, ~ . > 0)
 x <- function_step(x, longest_rle, val = FALSE)
-x <- filter_step(x, ~ . >= 12)
-
-excl3 <- unique(x[, id_vars(x), with = FALSE])
-
-
-# 4. Age < 18
-x <- load_step("age")
-x <- filter_step(x, ~ . < 18)
+x <- filter_step(x, ~ . > 12)
 
 excl4 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 5. AKI onset before ICU
+# 5. Age < 18
+x <- load_step("age")
+x <- filter_step(x, ~ . < 18)
+
+excl5 <- unique(x[, id_vars(x), with = FALSE])
+
+
+# 6. Baseline creatinine > 4
+baseline_candidates <- function(x) {
+  id <- id_var(x)
+  ind <- index_var(x)
+  x <- data.table::copy(x)
+  x[, num_in_icu := cumsum(get(ind) >= 0), by = c(id)]
+  x <- x[get(ind) < 0 | num_in_icu == 1]
+  x[, num_in_icu := NULL]
+  x
+}
+
+x1 <- load_step(dict["crea"], cache = TRUE)
+x2 <- mutate_step(x1, ~ cummin(.), by = id_var(x1))
+x3 <- function_step(x2, baseline_candidates)
+x4 <- summary_step(x3, "last")
+x5 <- filter_step(x4, ~ . > 4)
+
+excl6 <- unique(x5[, id_vars(x), with = FALSE])
+
+
+# 7. AKI onset before 6h in the ICU
 x1 <- load_step(dict["aki"], cache = TRUE)
 x2 <- summary_step(x1, "first")
-x3 <- filter_step(x2, ~ . < 0, col = index_col)
+x3 <- filter_step(x2, ~ . < 6, col = index_col)
 
-excl5 <- unique(x3[, id_vars(x), with = FALSE])
+excl7 <- unique(x3[, id_vars(x), with = FALSE])
+
 
 
 # Apply exclusions
-patients <- exclude(patients, mget(paste0("excl", 1:5)))
+patients <- exclude(patients, mget(paste0("excl", 1:7)))
 attrition <- as.data.table(patients[c("incl_n", "excl_n_total", "excl_n")])
 patients <- patients[['incl']]
 patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
@@ -140,6 +164,7 @@ assert_that(outcome_type == "dynamic", time_flow == "sequential")
 
 outc_fmt <- function_step(outc, map_to_grid)
 outc_fmt <- function_step(outc_fmt, outcome_window, window = c(6L, 6L))
+outc_fmt <- function_step(outc_fmt, set_window, value = NA, window = c(0L, 6L))
 rename_cols(outc_fmt, c("stay_id", "time", "label"), by_ref = TRUE)
 
 dyn_fmt <- function_step(dyn, map_to_grid)

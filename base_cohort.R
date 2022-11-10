@@ -59,14 +59,17 @@ stop_obs_at(patients, offset = ricu:::re_time(hours(max_len), time_unit(freq)), 
 
 # Apply exclusion criteria ------------------------------------------------
 
-# 1. Stay <6h
+# 1 Invalid LoS
+excl1 <- patients[end < 0, id_vars(patients), with = FALSE]
+
+# 2 Stay <6h
 x <- load_step("los_icu")
 x <- filter_step(x, ~ . < 6 / 24)
 
-excl1 <- unique(x[, id_vars(x), with = FALSE])
+excl2 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 2. Less than 4 measurements
+# 3. Less than 4 measurements
 n_obs_per_row <- function(x, ...) {
   # TODO: make sure this does not change by reference if a single concept is provided
   obs <- data_vars(x)
@@ -78,10 +81,10 @@ x <- load_step(dict[dynamic_vars], cache = TRUE)
 x <- summary_step(x, "count", drop_index = TRUE)
 x <- filter_step(x, ~ . < 4)
 
-excl2 <- unique(x[, id_vars(x), with = FALSE])
+excl3 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 3. More than 12 hour gaps between measurements
+# 4. More than 12 hour gaps between measurements
 map_to_grid <- function(x) {
   grid <- ricu::expand(patients)
   merge(grid, x, all.x = TRUE)
@@ -98,21 +101,21 @@ x <- function_step(x, map_to_grid)
 x <- function_step(x, n_obs_per_row)
 x <- mutate_step(x, ~ . > 0)
 x <- function_step(x, longest_rle, val = FALSE)
-x <- filter_step(x, ~ . >= 12)
-
-excl3 <- unique(x[, id_vars(x), with = FALSE])
-
-
-# 4. Age < 18
-x <- load_step("age")
-x <- filter_step(x, ~ . < 18)
+x <- filter_step(x, ~ . > 12)
 
 excl4 <- unique(x[, id_vars(x), with = FALSE])
 
 
+# 5. Age < 18
+x <- load_step("age")
+x <- filter_step(x, ~ . < 18)
+
+excl5 <- unique(x[, id_vars(x), with = FALSE])
+
+
 
 # Apply exclusions
-patients <- exclude(patients, mget(paste0("excl", 1:4)))
+patients <- exclude(patients, mget(paste0("excl", 1:5)))
 attrition <- as.data.table(patients[c("incl_n", "excl_n_total", "excl_n")])
 patients <- patients[['incl']]
 patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
@@ -121,12 +124,7 @@ patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
 # Prepare data ------------------------------------------------------------
 
 # Get predictors
-dyn <- load_step(dict[dynamic_vars], cache = TRUE)
 sta <- load_step(dict[static_vars], cache = TRUE)
-
-
-dyn_fmt <- function_step(dyn, map_to_grid)
-rename_cols(dyn_fmt, c("stay_id", "time"), meta_vars(dyn_fmt), by_ref = TRUE)
 
 sta_fmt <- sta[patient_ids]  # TODO: make into step
 rename_cols(sta_fmt, c("stay_id"), id_vars(sta), by_ref = TRUE)
@@ -140,7 +138,6 @@ if (!dir.exists(out_path)) {
   dir.create(out_path, recursive = TRUE)
 }
 
-arrow::write_parquet(dyn_fmt, paste0(out_path, "/dyn.parquet"))
 arrow::write_parquet(sta_fmt, paste0(out_path, "/sta.parquet"))
 fwrite(attrition, paste0(out_path, "/attrition.csv"))
 

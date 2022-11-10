@@ -36,12 +36,14 @@ kdigo_a <- load_concepts(dict['kdigo'], src, keep_components = TRUE, patient_ids
 
 
 mim <- load_concepts(dict['kdigo'], 'mimic', keep_components = TRUE)
-eic <- load_concepts(dict['kdigo_crea'], 'eicu')
+mii <- load_concepts(dict['kdigo'], 'miiv', keep_components = TRUE)
+eic <- load_concepts(dict['kdigo'], 'eicu', keep_components = TRUE)
 hir <- load_concepts(dict['kdigo'], 'hirid', keep_components = TRUE)
 aum <- load_concepts(dict['kdigo'], 'aumc', keep_components = TRUE)
 
+
 prev <- function(dt){
-  mean(dt[, .(crea = max(kdigo_crea)), by = c(id_var(dt))]$crea > 0)
+  mean(dt[, .(kdigo = max(kdigo)), by = c(id_var(dt))]$kdigo > 0)
 }
 
 

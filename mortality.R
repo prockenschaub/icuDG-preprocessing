@@ -64,41 +64,72 @@ stop_obs_at(patients, offset = ricu:::re_time(max_len, time_unit(freq)), by_ref 
 
 # Apply exclusion criteria ------------------------------------------------
 
-# 1. Age <18
-x <- load_step(dict["age"])
-x <- filter_step(x, ~ . < 18)
+# 1. Stay <6h
+x <- load_step("los_icu")
+x <- filter_step(x, ~ . < 6 / 24)
 
 excl1 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 2. Died within the first 30 hours of ICU admission
-x <- filter_step(outc, ~ . < 30, col = index_col)
+# 2. Less than 4 measurements
+n_obs_per_row <- function(x, ...) {
+  # TODO: make sure this does not change by reference if a single concept is provided
+  obs <- data_vars(x)
+  x[, n := as.vector(rowSums(!is.na(.SD))), .SDcols = obs]
+  x[, .SD, .SDcols = !c(obs)]
+}
+
+x <- load_step(dict[dynamic_vars], cache = TRUE)
+x <- summary_step(x, "count", drop_index = TRUE)
+x <- filter_step(x, ~ . < 4)
 
 excl2 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 3. LoS less than 24 hours
-x <- load_step(dict["los_icu"])
-x <- filter_step(x, ~ . < 1)
+# 3. More than 12 hour gaps between measurements
+map_to_grid <- function(x) {
+  grid <- ricu::expand(patients)
+  merge(grid, x, all.x = TRUE)
+}
+
+longest_rle <- function(x, val) {
+  x <- x[, rle(.SD[[data_var(x)]]), by = c(id_vars(x))]
+  x <- x[values != val, lengths := 0]
+  x[, .(lengths = max(lengths)), , by = c(id_vars(x))]
+}
+
+x <- load_step(dict[dynamic_vars], cache = TRUE)
+x <- function_step(x, map_to_grid)
+x <- function_step(x, n_obs_per_row)
+x <- mutate_step(x, ~ . > 0)
+x <- function_step(x, longest_rle, val = FALSE)
+x <- filter_step(x, ~ . > 12)
 
 excl3 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 4. observation periods without any measured dynamic predictors
-inverse_step <- function(x) {
-  id <- id_vars(x)
-  patients[!x, on = c(id), .SD, .SDcols = id]
-}
-
-x <- load_step(dict[dynamic_vars], interval = time_unit(freq), cache = TRUE)
-x <- filter_step(x, patients)
-x <- inverse_step(x)
+# 4. Age < 18
+x <- load_step("age")
+x <- filter_step(x, ~ . < 18)
 
 excl4 <- unique(x[, id_vars(x), with = FALSE])
 
 
+# 5. Died within the first 30 hours of ICU admission
+x <- filter_step(outc, ~ . < 30, col = index_col)
+
+excl5 <- unique(x[, id_vars(x), with = FALSE])
+
+
+# 6. LoS less than 30 hours
+x <- load_step(dict["los_icu"])
+x <- filter_step(x, ~ . < 30 / 24)
+
+excl6 <- unique(x[, id_vars(x), with = FALSE])
+
+
 # Apply exclusions
-patients <- patients[!excl1][!excl2][!excl3][!excl4]
+patients <- patients[!excl1][!excl2][!excl3][!excl4][!excl5][!excl6]
 patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
 
 

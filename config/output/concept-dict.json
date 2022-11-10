@@ -1,4 +1,15 @@
 {
+  "urine": {
+    "sources": {
+      "aumc": [
+        {
+          "ids": [8794, 8796, 8798, 8800, 8803],
+          "table": "numericitems",
+          "sub_var": "itemid"
+        }
+      ]
+    }
+  },
   "urine_rate": {
     "unit": "mL/h",
     "min": 0,

@@ -152,9 +152,31 @@
   },
   "kdigo_urine": {
     "description": "kidney disease improving global outcome urine output component",
-    "concepts": ["urine", "weight"],
+    "concepts": ["urine_rate", "weight"],
     "category": "outcome",
     "callback": "kdigo_urine",
+    "class": "rec_cncpt"
+  },
+  "sep3_alt": {
+    "concepts": ["sofa", "susp_inf_alt"],
+    "description": "sepsis-3 criterion (alt. def.: continuous abx only)",
+    "category": "outcome",
+    "callback": "sep3_alt",
+    "class": "rec_cncpt"
+  },
+  "susp_inf_alt": {
+    "concepts": ["abx_cont", "samp"],
+    "description": "suspected infection (alt. def.: continuous abx only)",
+    "category": "outcome",
+    "aggregate": [
+      [
+        "sum"
+      ],
+      [
+        false
+      ]
+    ],
+    "callback": "susp_inf_alt",
     "class": "rec_cncpt"
   }
 }
