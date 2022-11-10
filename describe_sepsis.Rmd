@@ -41,8 +41,12 @@ dyn[, time := ricu:::re_time(time, hours(1L))]
 outc <- map(data, "outc") %>% bind_rows(.id="src")
 outc[, time := ricu:::re_time(time, hours(1L))]
 
-outc_bin <- outc[, .(label = max(label), onset = if(any(label == 1)) min(time[label == 1]) + 6 else NA_real_), by = c("src", "stay_id")]
-
+outc_bin <- outc[, .(
+    label = max(label, na.rm = TRUE), 
+    onset = if(any(label, na.rm = TRUE)) max(time[ricu::is_true(label)]) - 6 else NA_real_
+  ), 
+  by = c("src", "stay_id")
+]
 # TODO: Fix time to hours
 
 ```
