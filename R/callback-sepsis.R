@@ -43,34 +43,6 @@ abx_cont <- function(..., abx_win = hours(72L), abx_max_gap = hours(24L), keep_c
   res
 }
 
-abx_cont_old <- function(..., abx_win = hours(72L), abx_max_gap = hours(24L), keep_components = FALSE, interval = NULL) {
-  cnc <- c("abx", "death_icu")
-  res <- ricu:::collect_dots(cnc, interval, ...)
-  abx <- res[["abx"]]
-  death_icu <- res[["death_icu"]]
-  
-  aid <- id_vars(abx)
-  aind <- index_var(abx)
-  did <- id_vars(death_icu)
-  dind <- index_var(death_icu)
-  
-  death_icu <- death_icu[death_icu == TRUE]
-  
-  res <- slide(
-    merge(abx, death_icu, by.x = aid, by.y = did, all.x = TRUE),
-    .(
-      max_gap = max(diff(c(
-        get(aind),
-        min(c(get(dind), get(aind)[1] + abx_win), na.rm = TRUE))
-    ))),
-    before = hours(0L),
-    after = abx_win
-  )
-  res <- res[max_gap <= abx_max_gap]
-  res[, c("abx_cont1", "max_gap") := .(TRUE, NULL)]
-  res
-}
-
 
 susp_inf_alt <- function(..., abx_count_win = hours(24L), abx_min_count = 1L, 
               positive_cultures = FALSE, si_mode = c("and", "or", "abx", "samp"), 
