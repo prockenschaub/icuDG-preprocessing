@@ -39,20 +39,17 @@ kdigo_crea <- function(..., keep_components = FALSE, interval = NULL) {
 }
 
 
-urine_rate <- function(..., max_gap = hours(24L), interval = NULL, id_type = "icustay") {
+urine_rate <- function(x, max_gap = hours(24L), interval = NULL, id_type = "icustay") {
   # TODO: Does not currently work as a rec_cncpt. For example, currently keep_components = TRUE would lead to 
   #       a situation in which `urine` and not `urine_rate` is passed back. This is likely because `fun_itm`,
   #       which is currently expects a table with a single column. If multiple are present, it chooses the first,
   #       which in this case is `urine`. Unhelpfully, this is then renamed to `urine_rate`, hiding this 
   #       behaviour.
   #       Solution: remove keep_components for now and use only as `fun_itm`
-  cnc <- c("urine")
-  res <- ricu:::collect_dots(cnc, interval, ...)
+  id <- id_var(x)
+  ind <- index_var(x) 
 
-  id <- id_var(res)
-  ind <- index_var(res) 
-
-  res <- rename_cols(res, "urine", old = data_var(res))
+  res <- rename_cols(x, "urine", old = data_var(x))
   
   res[, tm := get(ind) - data.table::shift(get(ind)) + 1L, by = c(id)]
   res[, tm := ifelse(is.na(tm) | tm > max_gap, 1, tm)]
