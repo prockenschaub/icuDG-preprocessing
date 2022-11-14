@@ -1,13 +1,13 @@
 {
   "abx_cont": {
-    "description": "continuous antibiotics",
-    "concepts": ["abx_detail", "death_icu"],
+    "description": "continuous antibiotic administration",
+    "concepts": ["abx_duration", "death_icu"],
     "category": "medications",
     "callback": "abx_cont",
     "class": "rec_cncpt"
   },
   "abx_duration": {
-    "description": "duration of antibiotics",
+    "description": "duration of administered antibiotics",
     "category": "medications",
     "target": "win_tbl",
     "class": "lgl_cncpt",
