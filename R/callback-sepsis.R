@@ -10,9 +10,9 @@ lead <- function(x) {
 abx_cont <- function(..., abx_win = hours(72L), abx_max_gap = hours(24L), keep_components = FALSE, interval = NULL) {
   # TODO: double-check and make prettier
   
-  cnc <- c("abx_detail", "death_icu")
+  cnc <- c("abx_duration", "death_icu")
   res <- ricu:::collect_dots(cnc, interval, ...)
-  abx <- res[["abx_detail"]]
+  abx <- res[["abx_duration"]]
   death_icu <- res[["death_icu"]]
   
   aid <- id_vars(abx)
