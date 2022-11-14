@@ -38,7 +38,6 @@ dynamic_vars <- c("alb", "alp", "alt", "ast", "be", "bicar", "bili", "bili_dir",
                   "lymph", "map", "mch", "mchc", "mcv", "methb", "mg", "na", "neut", 
                   "o2sat", "pco2", "ph", "phos", "plt", "po2", "ptt", "resp", "sbp", 
                   "temp", "tnt", "urine", "wbc")
-dynamic_vars <- c('hr', 'sbp', 'dbp', 'map', 'o2sat', 'temp', 'resp')
 
 # cross-sectional vs longitudinal
 predictor_type <- "dynamic" # static / dynamic
@@ -117,7 +116,39 @@ x <- filter_step(x, ~ . < 18)
 excl5 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 6. Baseline creatinine > 4
+# 6. Low AKI prevalence
+prevalence <- function(concept, hospital_ids, ...) {
+  assert_that(is_logical(data_col(concept)))
+  var <- data_var(concept)
+  cncpt_per_hosp <- concept[hospital_ids]
+  cncpt_per_hosp[, (var) := ricu::replace_na(.SD[[var]], FALSE)]
+  prevalence <- cncpt_per_hosp[, .(prev = mean(.SD[[var]])), by = hospital_id]
+  res <- merge(hospital_ids, prevalence, by = "hospital_id")
+  rm_cols(res, "hospital_id")
+}
+
+if (src %in% c("eicu", "eicu_demo")) {
+  x1 <- do.call(load_step, args = c(list(x = dict["sep3_alt"]), args))
+  x2 <- summary_step(x1, "exists")
+  x3 <- load_step(dict["hospital_id"])
+  x4 <- function_step(x2, prevalence, hospital_ids = x3)
+  x5 <- filter_step(x4, ~ . == 0)
+  
+  excl6 <- unique(x5[, id_vars(x), with = FALSE])
+} else {
+  excl6 <- excl1[0]
+}
+
+
+# 7. AKI onset before 6h in the ICU
+x1 <- load_step(dict["aki"], cache = TRUE)
+x2 <- summary_step(x1, "first")
+x3 <- filter_step(x2, ~ . < 6, col = index_col)
+
+excl7 <- unique(x3[, id_vars(x), with = FALSE])
+
+
+# 8. Baseline creatinine > 4
 baseline_candidates <- function(x) {
   id <- id_var(x)
   ind <- index_var(x)
@@ -134,20 +165,12 @@ x3 <- function_step(x2, baseline_candidates)
 x4 <- summary_step(x3, "last")
 x5 <- filter_step(x4, ~ . > 4)
 
-excl6 <- unique(x5[, id_vars(x), with = FALSE])
-
-
-# 7. AKI onset before 6h in the ICU
-x1 <- load_step(dict["aki"], cache = TRUE)
-x2 <- summary_step(x1, "first")
-x3 <- filter_step(x2, ~ . < 6, col = index_col)
-
-excl7 <- unique(x3[, id_vars(x), with = FALSE])
+excl8 <- unique(x5[, id_vars(x), with = FALSE])
 
 
 
 # Apply exclusions
-patients <- exclude(patients, mget(paste0("excl", 1:7)))
+patients <- exclude(patients, mget(paste0("excl", 1:8)))
 attrition <- as.data.table(patients[c("incl_n", "excl_n_total", "excl_n")])
 patients <- patients[['incl']]
 patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
