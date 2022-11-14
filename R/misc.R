@@ -8,10 +8,10 @@ set_default <- function(x, value) {
 
 exclude <- function(df, exclusions){
   excl <- exclusions[[1]]
+  excl_n_total <- nrow(excl)
+  excl_n <- nrow(excl) - nrow(excl[!df, on = names(excl)])
   incl <- df[!excl]
   incl_n <- nrow(incl)
-  excl_n_total <- nrow(excl)
-  excl_n <- nrow(df) - nrow(incl)
   
   if (length(exclusions) == 1) {
     return(list(
@@ -24,6 +24,6 @@ exclude <- function(df, exclusions){
   res <- exclude(incl, exclusions[-1])
   res[['incl_n']] <- c(incl_n, res[['incl_n']])
   res[['excl_n_total']] <- c(excl_n_total, res[['excl_n_total']])
-  res[['excl_n']] <- c(excl_n_total, res[['excl_n']])
+  res[['excl_n']] <- c(excl_n, res[['excl_n']])
   res
 }
