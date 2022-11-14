@@ -100,11 +100,11 @@ gdens %+% aes(temp)
 ```{r describe-vital-missing}
 
 # How many patients have no measurement in the first 24h for main vital signs?
-all_missing <- dyn[, map(.SD, ~ all(is.na(.))), by = c("src", "stay_id")]
-tbl_summary(all_missing %>% select(-stay_id, -time), by="src")
+all_missing <- dyn[, map(.SD, ~ all(is.na(.))), by = c("src", "stay_id"), .SDcols = c(vitals)]
+tbl_summary(all_missing %>% select(-stay_id), by="src")
 
 # How is this missingness jointly distributed? Are there blocks of missingness in some patients?
-all_missing <- all_missing[, c(.(src = src), map(.SD, ~ ifelse(., NA, FALSE))), .SDcols = dbp:temp]
+all_missing <- all_missing[, c(.(src = src), map(.SD, ~ ifelse(., NA, FALSE))), .SDcols = c(vitals)]
 mice::md.pattern(all_missing %>% filter(src == "aumc") %>% select(-src), rotate.names = TRUE)
 mice::md.pattern(all_missing %>% filter(src == "eicu") %>% select(-src), rotate.names = TRUE)
 mice::md.pattern(all_missing %>% filter(src == "hirid") %>% select(-src), rotate.names = TRUE)
@@ -122,7 +122,7 @@ tbl_summary(counts %>% select(-stay_id), by="src")
 
 ```
 
-Vital signs are also measured approximately every hour in almost all databases. Temperature is the exception across databases, most likely because it is entered by nurses. However, while it is measured every 2-4 hours in AUMC, eICU, and MIMIC, it is only measured every 6 hours in HiRID.
+Vital signs are also measured approximately every hour in almost all databases. Temperature is again the exception across databases, most likely because it is entered by nurses. However, while it is measured every 2-4 hours in AUMC, eICU, and MIMIC, it is only measured every 6 hours in HiRID.
 
 ```{r describe-lab-values}
 
@@ -152,7 +152,7 @@ gdens %+% aes(hr)
 gdens %+% aes(inr_pt) + scale_x_log10()
 gdens %+% aes(k)
 gdens %+% aes(lact)
-gdens %+% aes(lymph)
+gdens %+% aes(lymph) + scale_x_log10()
 gdens %+% aes(mch)
 gdens %+% aes(mchc) 
 gdens %+% aes(mcv)
@@ -204,4 +204,4 @@ outc %>%
 
 ```
 
-ICU mortality is comparable between eICU, HiRID, and MIMIC, hovering between 5.5-7%. AUMCdb on the other hand has more than twice the ICU mortality rate at 15%. 
+ICU mortality is comparable between eICU, HiRID, and MIMIC, hovering between 5.5-8.2%. AUMCdb on the other hand has more than twice the ICU mortality rate at 16%. 
