@@ -187,7 +187,6 @@ assert_that(outcome_type == "dynamic", time_flow == "sequential")
 
 outc_fmt <- function_step(outc, map_to_grid)
 outc_fmt <- function_step(outc_fmt, outcome_window, window = c(6L, 6L))
-outc_fmt <- function_step(outc_fmt, set_window, value = NA, window = c(0L, 6L))
 rename_cols(outc_fmt, c("stay_id", "time", "label"), by_ref = TRUE)
 
 dyn_fmt <- function_step(dyn, map_to_grid)
