@@ -38,9 +38,11 @@ dynamic_vars <- c("alb", "alp", "alt", "ast", "be", "bicar", "bili", "bili_dir",
                   "o2sat", "pco2", "ph", "phos", "plt", "po2", "ptt", "resp", "sbp", 
                   "temp", "tnt", "urine", "wbc")
 
-
 # cross-sectional vs longitudinal
 predictor_type <- "dynamic" # static / dynamic
+outcome_type <- NULL
+
+
 
 patients <- stay_windows(src, interval = time_unit(freq))
 patients <- as_win_tbl(patients, index_var = "start", dur_var = "end", interval = time_unit(freq))
@@ -52,17 +54,20 @@ patients <- as_win_tbl(patients, index_var = "start", dur_var = "end", interval 
 # databases. 
 
 
+
 # Define observation times ------------------------------------------------
 
 stop_obs_at(patients, offset = ricu:::re_time(hours(max_len), time_unit(freq)), by_ref = TRUE)
 
 
+
+
 # Apply exclusion criteria ------------------------------------------------
 
-# 1 Invalid LoS
+# 1. Invalid LoS
 excl1 <- patients[end < 0, id_vars(patients), with = FALSE]
 
-# 2 Stay <6h
+# 2. Stay <6h
 x <- load_step("los_icu")
 x <- filter_step(x, ~ . < 6 / 24)
 
