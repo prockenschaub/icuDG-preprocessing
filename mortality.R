@@ -52,7 +52,7 @@ patients <- as_win_tbl(patients, index_var = "start", dur_var = "end", interval 
 # Define outcome ----------------------------------------------------------
 
 outc <- load_step(dict["death_icu"])
-
+outc <- filter_step(outc, ~ . == TRUE)
 
 
 # Define observation times ------------------------------------------------
@@ -64,14 +64,17 @@ stop_obs_at(patients, offset = ricu:::re_time(max_len, time_unit(freq)), by_ref 
 
 # Apply exclusion criteria ------------------------------------------------
 
-# 1. Stay <6h
+# 1. Invalid LoS
+excl1 <- patients[end < 0, id_vars(patients), with = FALSE]
+
+# 2. Stay <6h
 x <- load_step("los_icu")
 x <- filter_step(x, ~ . < 6 / 24)
 
-excl1 <- unique(x[, id_vars(x), with = FALSE])
+excl2 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 2. Less than 4 measurements
+# 3. Less than 4 measurements
 n_obs_per_row <- function(x, ...) {
   # TODO: make sure this does not change by reference if a single concept is provided
   obs <- data_vars(x)
@@ -83,10 +86,10 @@ x <- load_step(dict[dynamic_vars], cache = TRUE)
 x <- summary_step(x, "count", drop_index = TRUE)
 x <- filter_step(x, ~ . < 4)
 
-excl2 <- unique(x[, id_vars(x), with = FALSE])
+excl3 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 3. More than 12 hour gaps between measurements
+# 4. More than 12 hour gaps between measurements
 map_to_grid <- function(x) {
   grid <- ricu::expand(patients)
   merge(grid, x, all.x = TRUE)
@@ -105,31 +108,34 @@ x <- mutate_step(x, ~ . > 0)
 x <- function_step(x, longest_rle, val = FALSE)
 x <- filter_step(x, ~ . > 12)
 
-excl3 <- unique(x[, id_vars(x), with = FALSE])
-
-
-# 4. Age < 18
-x <- load_step("age")
-x <- filter_step(x, ~ . < 18)
-
 excl4 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 5. Died within the first 30 hours of ICU admission
-x <- filter_step(outc, ~ . < 30, col = index_col)
+# 5. Age < 18
+x <- load_step("age")
+x <- filter_step(x, ~ . < 18)
 
 excl5 <- unique(x[, id_vars(x), with = FALSE])
 
 
-# 6. LoS less than 30 hours
-x <- load_step(dict["los_icu"])
-x <- filter_step(x, ~ . < 30 / 24)
+# 6. Died within the first 30 hours of ICU admission
+x <- filter_step(outc, ~ . == TRUE)
+x <- filter_step(x, ~ . < 30, col = index_col)
 
 excl6 <- unique(x[, id_vars(x), with = FALSE])
 
 
+# 7. LoS less than 30 hours
+x <- load_step(dict["los_icu"])
+x <- filter_step(x, ~ . < 30 / 24)
+
+excl7 <- unique(x[, id_vars(x), with = FALSE])
+
+
 # Apply exclusions
-patients <- patients[!excl1][!excl2][!excl3][!excl4][!excl5][!excl6]
+patients <- exclude(patients, mget(paste0("excl", 1:7)))
+attrition <- as.data.table(patients[c("incl_n", "excl_n_total", "excl_n")])
+patients <- patients[['incl']]
 patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
 
 
@@ -175,3 +181,4 @@ if (!dir.exists(out_path)) {
 arrow::write_parquet(outc_fmt, paste0(out_path, "/outc.parquet"))
 arrow::write_parquet(dyn_fmt, paste0(out_path, "/dyn.parquet"))
 arrow::write_parquet(sta_fmt, paste0(out_path, "/sta.parquet"))
+fwrite(attrition, paste0(out_path, "/attrition.csv"))
