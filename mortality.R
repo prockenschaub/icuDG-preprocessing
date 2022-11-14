@@ -47,6 +47,9 @@ outcome_type   <- "static" # static / dynamic
 patients <- stay_windows(src, interval = time_unit(freq))
 patients <- as_win_tbl(patients, index_var = "start", dur_var = "end", interval = time_unit(freq))
 
+# Only keep patients in the base cohort (see base_cohort.R)
+base <- arrow::read_parquet(file.path(conf$output_dir, "base", src, "sta.parquet"))
+patients <- patients[id_col(patients) %in% id_col(base)]
 
 
 # Define outcome ----------------------------------------------------------
@@ -64,59 +67,7 @@ stop_obs_at(patients, offset = ricu:::re_time(max_len, time_unit(freq)), by_ref 
 
 # Apply exclusion criteria ------------------------------------------------
 
-# 1. Invalid LoS
-excl1 <- patients[end < 0, id_vars(patients), with = FALSE]
-
-# 2. Stay <6h
-x <- load_step("los_icu")
-x <- filter_step(x, ~ . < 6 / 24)
-
-excl2 <- unique(x[, id_vars(x), with = FALSE])
-
-
-# 3. Less than 4 measurements
-n_obs_per_row <- function(x, ...) {
-  # TODO: make sure this does not change by reference if a single concept is provided
-  obs <- data_vars(x)
-  x[, n := as.vector(rowSums(!is.na(.SD))), .SDcols = obs]
-  x[, .SD, .SDcols = !c(obs)]
-}
-
-x <- load_step(dict[dynamic_vars], cache = TRUE)
-x <- summary_step(x, "count", drop_index = TRUE)
-x <- filter_step(x, ~ . < 4)
-
-excl3 <- unique(x[, id_vars(x), with = FALSE])
-
-
-# 4. More than 12 hour gaps between measurements
-map_to_grid <- function(x) {
-  grid <- ricu::expand(patients)
-  merge(grid, x, all.x = TRUE)
-}
-
-longest_rle <- function(x, val) {
-  x <- x[, rle(.SD[[data_var(x)]]), by = c(id_vars(x))]
-  x <- x[values != val, lengths := 0]
-  x[, .(lengths = max(lengths)), , by = c(id_vars(x))]
-}
-
-x <- load_step(dict[dynamic_vars], cache = TRUE)
-x <- function_step(x, map_to_grid)
-x <- function_step(x, n_obs_per_row)
-x <- mutate_step(x, ~ . > 0)
-x <- function_step(x, longest_rle, val = FALSE)
-x <- filter_step(x, ~ . > 12)
-
-excl4 <- unique(x[, id_vars(x), with = FALSE])
-
-
-# 5. Age < 18
-x <- load_step("age")
-x <- filter_step(x, ~ . < 18)
-
-excl5 <- unique(x[, id_vars(x), with = FALSE])
-
+# Exclusions 1.-5. are defined in base_cohort.R
 
 # 6. Died within the first 30 hours of ICU admission
 x <- filter_step(outc, ~ . == TRUE)
@@ -133,7 +84,7 @@ excl7 <- unique(x[, id_vars(x), with = FALSE])
 
 
 # Apply exclusions
-patients <- exclude(patients, mget(paste0("excl", 1:7)))
+patients <- exclude(patients, mget(paste0("excl", 6:7)))
 attrition <- as.data.table(patients[c("incl_n", "excl_n_total", "excl_n")])
 patients <- patients[['incl']]
 patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
