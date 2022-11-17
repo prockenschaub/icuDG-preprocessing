@@ -8,8 +8,6 @@ lead <- function(x) {
 }
 
 abx_cont <- function(..., abx_win = hours(72L), abx_max_gap = hours(24L), keep_components = FALSE, interval = NULL) {
-  # TODO: double-check and make prettier
-  
   cnc <- c("abx_duration", "death_icu")
   res <- ricu:::collect_dots(cnc, interval, ...)
   abx <- res[["abx_duration"]]
@@ -27,14 +25,34 @@ abx_cont <- function(..., abx_win = hours(72L), abx_max_gap = hours(24L), keep_c
   abx_death <- merge(abx, death_icu, by.x = aid, by.y = did, all.x = TRUE)
   
   res <- slide(
+    # Only look at antibiotic records that are recorded before the time of death
     abx_death[is.na(get(dind)) | get(aind) <= get(dind)], 
     .(
+    # Calculate the maximum gap between two administrations for the next `abx_win` hours
+    # as follows: 
+    #
+    # 1. get the administration time of the next antibiotic:
+    #        lead(get(aind))
+    # 2. this isn't defined for the last (.N-th) time within the window, so remove that 
+    #        lead(get(aind))[-.N]:
+    # 3. replace the last time with either 
+    #   a) the time of death: 
+    #        get(dind)
+    #   b) the first antibiotic time in the window (=current antibiotic we are looking at)
+    #      plus the window lenght
+    #        get(aind)[1] + abx_win
+    #    whichever is earlier
+    # 4. subtract from it the latest time that any previous antibiotic was stopped 
+    #        cummax_difftime(get(aind) + dur_var)
+    #    this is the gap
+    # 5. take the maximum gap calculated this way for this window
+    # 6. repeat for all possible windows
       max_gap = max(
         c(lead(get(aind))[-.N], min(c(get(dind), get(aind)[1] + abx_win), na.rm = TRUE)) - 
         cummax_difftime(get(aind) + dur_var)
       )
     ), 
-    before = hours(0L), 
+    before = hours(0L), # we always start from the current antibiotic and look `abx_win` in the future
     after = abx_win
   )
   
