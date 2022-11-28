@@ -129,7 +129,12 @@ patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
 # Prepare data ------------------------------------------------------------
 
 # Get predictors
+dyn <- load_step(dict[dynamic_vars], cache = TRUE)
 sta <- load_step(dict[static_vars], cache = TRUE)
+
+# Transform all variables into the target format
+dyn_fmt <- function_step(dyn, map_to_grid)
+rename_cols(dyn_fmt, c("stay_id", "time"), meta_vars(dyn_fmt), by_ref = TRUE)
 
 sta_fmt <- sta[patient_ids]  # TODO: make into step
 rename_cols(sta_fmt, c("stay_id"), id_vars(sta), by_ref = TRUE)
@@ -143,6 +148,7 @@ if (!dir.exists(out_path)) {
   dir.create(out_path, recursive = TRUE)
 }
 
+arrow::write_parquet(dyn_fmt, paste0(out_path, "/dyn.parquet"))
 arrow::write_parquet(sta_fmt, paste0(out_path, "/sta.parquet"))
 fwrite(attrition, paste0(out_path, "/attrition.csv"))
 
