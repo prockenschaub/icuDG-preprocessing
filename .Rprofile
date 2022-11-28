@@ -11,6 +11,7 @@ library(ricu)
 source("R/callback-circ-fail.R")
 source("R/callback-icu-mortality.R")
 source("R/callback-kdigo.R")
+source("R/callback-sepsis.R")
 
-concept_path <- file.path("config", c("circulatory", "demographics", "hematology", "medications", "misc", "outcomes", "output", "respiratory", "vitals"))
+concept_path <- file.path("config", c("chemistry", "circulatory", "demographics", "hematology", "medications", "misc", "outcomes", "output", "respiratory", "vitals"))
 dict <- load_dictionary(cfg_dirs = concept_path)
