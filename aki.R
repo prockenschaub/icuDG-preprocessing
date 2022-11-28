@@ -86,7 +86,7 @@ if (src %in% c("eicu", "eicu_demo")) {
   x4 <- function_step(x2, prevalence, hospital_ids = x3)
   x5 <- filter_step(x4, ~ . == 0)
   
-  excl6 <- unique(x5[, id_vars(x), with = FALSE])
+  excl6 <- unique(x5[, id_vars(x5), with = FALSE])
 } else {
   excl6 <- excl1[0]
 }
@@ -97,7 +97,7 @@ x1 <- load_step(dict["aki"], cache = TRUE)
 x2 <- summary_step(x1, "first")
 x3 <- filter_step(x2, ~ . < 6, col = index_col)
 
-excl7 <- unique(x3[, id_vars(x), with = FALSE])
+excl7 <- unique(x3[, id_vars(x5), with = FALSE])
 
 
 # 8. Baseline creatinine > 4
@@ -117,7 +117,7 @@ x3 <- function_step(x2, baseline_candidates)
 x4 <- summary_step(x3, "last")
 x5 <- filter_step(x4, ~ . > 4)
 
-excl8 <- unique(x5[, id_vars(x), with = FALSE])
+excl8 <- unique(x5[, id_vars(x5), with = FALSE])
 
 
 
