@@ -80,7 +80,7 @@ prevalence <- function(concept, hospital_ids, ...) {
 }
 
 if (src %in% c("eicu", "eicu_demo")) {
-  x1 <- do.call(load_step, args = c(list(x = dict["sep3_alt"]), args))
+  x1 <- load_step(dict["aki"], cache = TRUE)
   x2 <- summary_step(x1, "exists")
   x3 <- load_step(dict["hospital_id"])
   x4 <- function_step(x2, prevalence, hospital_ids = x3)
