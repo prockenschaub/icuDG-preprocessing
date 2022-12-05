@@ -13,7 +13,7 @@ source("R/obs_time.R")
 
 # Create a parser
 p <- arg_parser("Extract and preprocess ICU sepsis data")
-p <- add_argument(p, "--src", help="source database", default="eicu_demo")
+p <- add_argument(p, "--src", help="source database", default="mimic_demo")
 argv <- parse_args(p)
 
 src <- argv$src 
@@ -92,7 +92,7 @@ if (src %in% c("eicu", "eicu_demo")) {
   
   excl6 <- unique(x5[, id_vars(x5), with = FALSE])
 } else {
-  excl6 <- excl1[0]
+  excl6 <- patients[0]
 }
 
 

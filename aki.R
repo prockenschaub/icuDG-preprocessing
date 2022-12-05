@@ -88,7 +88,7 @@ if (src %in% c("eicu", "eicu_demo")) {
   
   excl6 <- unique(x5[, id_vars(x5), with = FALSE])
 } else {
-  excl6 <- excl1[0]
+  excl6 <- patients[0]
 }
 
 
