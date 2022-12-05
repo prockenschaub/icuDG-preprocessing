@@ -97,7 +97,7 @@ x1 <- load_step(dict["aki"], cache = TRUE)
 x2 <- summary_step(x1, "first")
 x3 <- filter_step(x2, ~ . < 6, col = index_col)
 
-excl7 <- unique(x3[, id_vars(x5), with = FALSE])
+excl7 <- unique(x3[, id_vars(x3), with = FALSE])
 
 
 # 8. Baseline creatinine > 4
