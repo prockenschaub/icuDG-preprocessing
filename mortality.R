@@ -13,7 +13,7 @@ source("R/obs_time.R")
 
 # Create a parser
 p <- arg_parser("Extract and preprocess ICU mortality data")
-p <- add_argument(p, "--src", help="source database", default="eicu_demo")
+p <- add_argument(p, "--src", help="source database", default="mimic_demo")
 argv <- parse_args(p)
 
 src <- argv$src 
@@ -54,7 +54,7 @@ patients <- patients[id_col(patients) %in% id_col(base)]
 
 # Define outcome ----------------------------------------------------------
 
-outc <- load_step(dict["death_icu"])
+outc <- load_step(dict["death_icu"], interval=time_unit(freq))
 outc <- filter_step(outc, ~ . == TRUE)
 
 
@@ -93,7 +93,7 @@ patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
 # Prepare data ------------------------------------------------------------
 
 # Get predictors
-dyn <- load_step(dict[dynamic_vars], cache = TRUE)
+dyn <- load_step(dict[dynamic_vars], interval=time_unit(freq), cache = TRUE)
 sta <- load_step(dict[static_vars], cache = TRUE)
 
 # Transform all variables into the target format

@@ -13,7 +13,7 @@ source("R/obs_time.R")
 
 # Create a parser
 p <- arg_parser("Extract and preprocess ICU mortality data")
-p <- add_argument(p, "--src", help="source database", default="eicu_demo")
+p <- add_argument(p, "--src", help="source database", default="mimic_demo")
 argv <- parse_args(p)
 
 src <- argv$src 
@@ -82,7 +82,7 @@ n_obs_per_row <- function(x, ...) {
   x[, .SD, .SDcols = !c(obs)]
 }
 
-x <- load_step(dict[dynamic_vars], cache = TRUE)
+x <- load_step(dict[dynamic_vars], interval=time_unit(freq), cache = TRUE)
 x <- summary_step(x, "count", drop_index = TRUE)
 x <- filter_step(x, ~ . < 4)
 
@@ -101,12 +101,12 @@ longest_rle <- function(x, val) {
   x[, .(lengths = max(lengths)), , by = c(id_vars(x))]
 }
 
-x <- load_step(dict[dynamic_vars], cache = TRUE)
+x <- load_step(dict[dynamic_vars], interval=time_unit(freq), cache = TRUE)
 x <- function_step(x, map_to_grid)
 x <- function_step(x, n_obs_per_row)
 x <- mutate_step(x, ~ . > 0)
 x <- function_step(x, longest_rle, val = FALSE)
-x <- filter_step(x, ~ . > 12)
+x <- filter_step(x, ~ . > as.numeric(ricu:::re_time(hours(12), time_unit(1)) / freq))
 
 excl4 <- unique(x[, id_vars(x), with = FALSE])
 
@@ -129,7 +129,7 @@ patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
 # Prepare data ------------------------------------------------------------
 
 # Get predictors
-dyn <- load_step(dict[dynamic_vars], cache = TRUE)
+dyn <- load_step(dict[dynamic_vars], interval=time_unit(freq), cache = TRUE)
 sta <- load_step(dict[static_vars], cache = TRUE)
 
 # Transform all variables into the target format
