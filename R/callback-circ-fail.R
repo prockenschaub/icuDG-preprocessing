@@ -1,6 +1,4 @@
 
-
-
 circ_fail <- function (..., lact_thresh = 2, map_thresh = 65, 
                        fill_for = hours(3L), cond_win = mins(45L),
                        cond_dur = mins(30L), keep_components = FALSE, 

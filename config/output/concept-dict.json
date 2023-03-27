@@ -1,0 +1,67 @@
+{
+  "urine": {
+    "sources": {
+      "aumc": [
+        {
+          "ids": [8794, 8796, 8798, 8800, 8803],
+          "table": "numericitems",
+          "sub_var": "itemid"
+        }
+      ]
+    }
+  },
+  "urine_rate": {
+    "unit": "mL/h",
+    "min": 0,
+    "max": 2000,
+    "aggregate": "max",
+    "description": "urine rate per hour",
+    "category": "output",
+    "sources": {
+      "aumc": [
+        {
+          "class": "fun_itm",
+          "callback": "combine_callbacks(fwd_concept('urine'), urine_rate)"
+        } 
+      ],
+      "eicu": [
+        {
+          "class": "fun_itm",
+          "callback": "combine_callbacks(fwd_concept('urine'), urine_rate)"
+        } 
+      ],
+      "eicu_demo": [
+        {
+          "class": "fun_itm",
+          "callback": "combine_callbacks(fwd_concept('urine'), urine_rate)"
+        } 
+      ],
+      "hirid": [
+        {
+          "ids": 10020000,
+          "table": "observations",
+          "sub_var": "variableid",
+          "class": "hrd_itm"
+        }
+      ],
+      "miiv": [
+        {
+          "class": "fun_itm",
+          "callback": "combine_callbacks(fwd_concept('urine'), urine_rate)"
+        } 
+      ],
+      "mimic": [
+        {
+          "class": "fun_itm",
+          "callback": "combine_callbacks(fwd_concept('urine'), urine_rate)"
+        } 
+      ],
+      "mimic_demo": [
+        {
+          "class": "fun_itm",
+          "callback": "combine_callbacks(fwd_concept('urine'), urine_rate)"
+        } 
+      ]
+    }
+  }
+}

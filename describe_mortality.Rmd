@@ -1,0 +1,207 @@
+---
+title: "Description of ICU mortality data"
+output: html_document
+date: "2022-09-27"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+library(data.table)
+library(tidyverse)
+library(gtsummary)
+library(testthat)
+
+conf <- ricu:::read_json("config.json")
+srcs <- c("mimic", "miiv", "eicu", "hirid", "aumc")
+
+knitr::opts_chunk$set(echo=TRUE)
+
+```
+
+```{r load}
+
+load_data <- function(src) {
+  path <- file.path(conf$output_dir, "mortality24", src)
+  list(
+    outc = arrow::read_parquet(file.path(path, "outc.parquet")),
+    dyn = arrow::read_parquet(file.path(path, "dyn.parquet")),
+    sta = arrow::read_parquet(file.path(path, "sta.parquet"))
+  )
+}
+
+data <- srcs %>% 
+  set_names() %>% 
+  map(load_data)
+
+static <- map(data, "sta") %>% bind_rows(.id="src")
+dyn <- map(data, "dyn") %>% bind_rows(.id="src")
+outc <- map(data, "outc") %>% bind_rows(.id="src")
+
+```
+
+```{r sanity-check}
+
+expect_equal(sum(is.na(outc$label)), 0)                    # no missingness in the outcome
+expect_equal(nrow(static), nrow(outc))                     # every patient has some static data
+expect_equal(unique(static$stay_id), unique(dyn$stay_id))  # every patient has some dynamic data
+expect_equal(unique(count(dyn, src, stay_id)$n), 25)       # every patient has 25 time steps
+
+```
+
+```{r describe-static}
+
+map(data, ~ summary(.$sta))
+
+tbl_strata(static, strata="src", tbl_summary)
+tbl_strata(inner_join(static, outc), strata="src", ~ tbl_summary(., by="label"))
+
+ghist <- ggplot(static, aes(fill=src)) + 
+  geom_histogram(
+    aes(y=..count../tapply(..count..,..PANEL..,sum)[..PANEL..]), 
+    position='identity', 
+    alpha=0.3
+  ) + 
+  facet_wrap(. ~ src) + 
+  theme_bw()            
+            
+ghist %+% aes(x=age) + labs(title="Age")
+ghist %+% aes(x=height) + labs(title="Height")
+ghist %+% aes(x=weight) + labs(title="Weight")
+            
+```
+
+The static data between sites looks reasonably comparable. There are a small number of peculiarities:
+- AUMC only records groups for age, height, and weight
+- MIMIC and eICU contain some low outliers for height, which seem to originate from an erroneous conversion of inch to cm. For example, some patient have a height measurement of 5.7 inch (=14.5cm), which most likely was meant to be 5'7" (=170.2cm). However, it could also be 57 inch (=144.8cm). Due to the likely random nature and low frequency of these cases, leave as is. 
+- MIMIC and eICU contain some low outliers for weight. These do not seem to be obvious conversion errors but they are again ignored. 
+
+
+```{r describe-vital-values}
+
+vitals <- c('hr', 'resp', 'sbp', 'dbp', 'map', 'o2sat', 'temp')
+
+gdens <- ggplot(dyn, aes(fill=src)) + 
+  geom_density(alpha=0.3) + 
+  theme_bw()
+
+# Vital signs
+gdens %+% aes(hr)
+gdens %+% aes(resp)
+gdens %+% aes(sbp)
+gdens %+% aes(dbp)
+gdens %+% aes(map)
+gdens %+% aes(o2sat)
+gdens %+% aes(temp)
+
+```
+
+```{r describe-vital-missing}
+
+# How many patients have no measurement in the first 24h for main vital signs?
+all_missing <- dyn[, map(.SD, ~ all(is.na(.))), by = c("src", "stay_id"), .SDcols = c(vitals)]
+tbl_summary(all_missing %>% select(-stay_id), by="src")
+
+# How is this missingness jointly distributed? Are there blocks of missingness in some patients?
+all_missing <- all_missing[, c(.(src = src), map(.SD, ~ ifelse(., NA, FALSE))), .SDcols = c(vitals)]
+mice::md.pattern(all_missing %>% filter(src == "aumc") %>% select(-src), rotate.names = TRUE)
+mice::md.pattern(all_missing %>% filter(src == "eicu") %>% select(-src), rotate.names = TRUE)
+mice::md.pattern(all_missing %>% filter(src == "hirid") %>% select(-src), rotate.names = TRUE)
+mice::md.pattern(all_missing %>% filter(src == "miiv") %>% select(-src), rotate.names = TRUE)
+mice::md.pattern(all_missing %>% filter(src == "mimic") %>% select(-src), rotate.names = TRUE)
+
+```
+
+There is pretty good coverage of vital signs in the first 24h across databases. The only outlier is body temperature in HiRID, with 39% of patients not having a measurement. This isn't limited to the first 24h hours either. Looking at it in more detail, we find that those patients *never* have a body temperature measured. An issue was filed in the HiRID GitHub repo: https://github.com/HIRID/HiRID_v1/issues/4
+
+```{r describe-vitals-frequency}
+
+counts <- dyn[, map(.SD, ~ sum(!is.na(.))), by = c("src", "stay_id"), .SDcols = c(vitals)]
+tbl_summary(counts %>% select(-stay_id), by="src")
+
+```
+
+Vital signs are also measured approximately every hour in almost all databases. Temperature is again the exception across databases, most likely because it is entered by nurses. However, while it is measured every 2-4 hours in AUMC, eICU, and MIMIC, it is only measured every 6 hours in HiRID.
+
+```{r describe-lab-values}
+
+# Vital signs
+gdens %+% aes(alb)
+gdens %+% aes(alp) + scale_x_log10()
+gdens %+% aes(alt) + scale_x_log10()
+gdens %+% aes(ast) + scale_x_log10()
+gdens %+% aes(be)
+gdens %+% aes(bicar)
+gdens %+% aes(bili) + scale_x_log10()
+gdens %+% aes(bili_dir + 0.01) + scale_x_log10()
+gdens %+% aes(bnd)
+gdens %+% aes(bun)
+gdens %+% aes(ca)
+gdens %+% aes(cai)
+gdens %+% aes(ck) + scale_x_log10()
+gdens %+% aes(ckmb) + scale_x_log10()
+gdens %+% aes(cl)
+gdens %+% aes(crea) + scale_x_log10()
+gdens %+% aes(crp) + scale_x_log10()
+gdens %+% aes(fgn) + scale_x_log10()  
+gdens %+% aes(fio2)
+gdens %+% aes(glu)
+gdens %+% aes(hgb)
+gdens %+% aes(hr)
+gdens %+% aes(inr_pt) + scale_x_log10()
+gdens %+% aes(k)
+gdens %+% aes(lact)
+gdens %+% aes(lymph) + scale_x_log10()
+gdens %+% aes(mch)
+gdens %+% aes(mchc) 
+gdens %+% aes(mcv)
+gdens %+% aes(methb) + scale_x_log10()
+gdens %+% aes(mg)
+gdens %+% aes(na)
+gdens %+% aes(neut)
+gdens %+% aes(pco2)
+gdens %+% aes(ph)
+gdens %+% aes(phos)
+gdens %+% aes(plt)
+gdens %+% aes(po2)
+gdens %+% aes(ptt)
+gdens %+% aes(tnt) + scale_x_log10()
+gdens %+% aes(urine) + scale_x_log10()
+gdens %+% aes(wbc) + scale_x_log10()
+
+```
+
+- Albumin appears slightly split into two modes by continent, with US databases reporting slightly higher and more normal albumin levels (normal range is 3.4-5.4 g/dL)
+- MIMIC III and IV have a coarser recording of base excess at 0.5 increments, with a substantial overrecording of zeros
+- There are some discrepancies in direct bilirubin, with generally higher levels in MIMIC III and IV. However, it's difficult to say if they are qualitatively different, as most are on the boundary to 0. 
+- Band form neutrophils are generally higher in HiRID
+- There are some mild continental differences in CK, with higher levels in AUMC and HiRID
+- Lymphocyte % in HiRID appear unreliable
+- There are some > values for PTT in MIMIC (>150 secs) and AUMC (>240 secs)
+- HiRID appears to have higher urine output. This may be a) because it is measured less frequently or b) because it is derived from the total fluid balance. There is also direct urine output in the data but it is given in ml/hour since last measurement and appears less reliable. 
+
+
+```{r describe-labs-frequency}
+
+counts <- dyn[, map(.SD, ~ sum(!is.na(.))), by = c("src", "stay_id"), .SDcols = !c(vitals)]
+tbl_summary(counts %>% select(-stay_id), by="src", type = everything() ~ "continuous")
+
+
+counts <- counts[, c(.(src = src, stay_id = stay_id), map(.SD, ~ cut(., c(-Inf, 0, 1, Inf), c("0", "1", ">2")))), .SDcols = !c("src", "stay_id", "time")]
+tbl_summary(counts %>% select(-stay_id), by="src")
+
+```
+
+
+```{r describe-outcome}
+
+tbl_summary(outc %>% select(-stay_id), by="src")
+
+outc %>% 
+  group_by(src) %>% 
+  summarise(p = mean(label))
+
+```
+
+ICU mortality is comparable between eICU, HiRID, and MIMIC, hovering between 5.5-8.2%. AUMCdb on the other hand has more than twice the ICU mortality rate at 16%. 

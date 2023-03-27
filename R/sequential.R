@@ -45,3 +45,22 @@ outcome_window <- function(x, window = 0L) {
     x[, c(val) := pad_rollind(.SD[[val]], window[2] + 1L, align = "right", na.rm = TRUE), by = c(id)]
   }
 }
+
+
+set_window <- function(x, value = NA, window = 0L) {
+  assert_that(all(window >= 0), length(window) <= 2, !has_gaps(x))
+  
+  if (length(window) == 1)
+    window <- rep(window, 2L)
+  
+  id <- id_vars(x)
+  ind <- index_var(x)
+  val <- data_var(x)
+  
+  if (sum(window) > 0){
+    # TODO: think about moving this into a separate function
+    x[window[1] <= get(ind) & get(ind) < window[2], c(val) := value]
+  }
+}
+
+

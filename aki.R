@@ -10,24 +10,25 @@ source("R/steps.R")
 source("R/sequential.R")
 source("R/obs_time.R")
 
+# https://link.springer.com/article/10.1007/s00134-017-4678-3
 
 # Create a parser
-p <- arg_parser("Extract and preprocess ICU mortality data")
-p <- add_argument(p, "--src", help="source database", default="mimic_demo")
+p <- arg_parser("Extract and preprocess ICU AKI data")
+p <- add_argument(p, "--src", help="source database", default="eicu_demo")
 argv <- parse_args(p)
 
 src <- argv$src 
 conf <- ricu:::read_json("config.json")
-path <- file.path(conf$output_dir, "mortality24")
+path <- file.path(conf$output_dir, "aki")
 
 
 cncpt_env <- new.env()
 
 # Task description
-time_flow <- "sequential" # static / sequential / continuous
+time_flow <- "sequential" # sequential / continuous
 time_unit <- hours
 freq <- 1L
-max_len <- hours(24L)
+max_len <- hours(7 * 24)  # = 7 days
 
 static_vars <- c("age", "sex", "height", "weight")
 
@@ -40,8 +41,7 @@ dynamic_vars <- c("alb", "alp", "alt", "ast", "be", "bicar", "bili", "bili_dir",
 
 # cross-sectional vs longitudinal
 predictor_type <- "dynamic" # static / dynamic
-outcome_type   <- "static" # static / dynamic
-
+outcome_type   <- "dynamic" # static / dynamic
 
 
 patients <- stay_windows(src, interval = time_unit(freq))
@@ -54,37 +54,75 @@ patients <- patients[id_col(patients) %in% id_col(base)]
 
 # Define outcome ----------------------------------------------------------
 
-outc <- load_step(dict["death_icu"], interval=time_unit(freq))
-outc <- filter_step(outc, ~ . == TRUE)
+outc <- load_step(dict["aki"], cache = TRUE)
+outc <- summary_step(outc, "first")
 
 
 # Define observation times ------------------------------------------------
 
-stop_obs_at(outc, offset = hours(0L), by_ref = TRUE)
+stop_obs_at(outc, offset = hours(6L), by_ref = TRUE)
 stop_obs_at(patients, offset = ricu:::re_time(max_len, time_unit(freq)), by_ref = TRUE)
-
 
 
 # Apply exclusion criteria ------------------------------------------------
 
 # Exclusions 1.-5. are defined in base_cohort.R
 
-# 6. Died within the first 30 hours of ICU admission
-x <- filter_step(outc, ~ . == TRUE)
-x <- filter_step(x, ~ . < 30, col = index_col)
+# 6. Low AKI prevalence
+prevalence <- function(concept, hospital_ids, ...) {
+  assert_that(is_logical(data_col(concept)))
+  var <- data_var(concept)
+  cncpt_per_hosp <- concept[hospital_ids]
+  cncpt_per_hosp[, (var) := ricu::replace_na(.SD[[var]], FALSE)]
+  prevalence <- cncpt_per_hosp[, .(prev = mean(.SD[[var]])), by = hospital_id]
+  res <- merge(hospital_ids, prevalence, by = "hospital_id")
+  rm_cols(res, "hospital_id")
+}
 
-excl6 <- unique(x[, id_vars(x), with = FALSE])
+if (src %in% c("eicu", "eicu_demo")) {
+  x1 <- load_step(dict["aki"], cache = TRUE)
+  x2 <- summary_step(x1, "exists")
+  x3 <- load_step(dict["hospital_id"])
+  x4 <- function_step(x2, prevalence, hospital_ids = x3)
+  x5 <- filter_step(x4, ~ . == 0)
+  
+  excl6 <- unique(x5[, id_vars(x5), with = FALSE])
+} else {
+  excl6 <- patients[0]
+}
 
 
-# 7. LoS less than 30 hours
-x <- load_step(dict["los_icu"])
-x <- filter_step(x, ~ . < 30 / 24)
+# 7. AKI onset before 6h in the ICU
+x1 <- load_step(dict["aki"], cache = TRUE)
+x2 <- summary_step(x1, "first")
+x3 <- filter_step(x2, ~ . < 6, col = index_col)
 
-excl7 <- unique(x[, id_vars(x), with = FALSE])
+excl7 <- unique(x3[, id_vars(x3), with = FALSE])
+
+
+# 8. Baseline creatinine > 4
+baseline_candidates <- function(x) {
+  id <- id_var(x)
+  ind <- index_var(x)
+  x <- data.table::copy(x)
+  x[, num_in_icu := cumsum(get(ind) >= 0), by = c(id)]
+  x <- x[get(ind) < 0 | num_in_icu == 1]
+  x[, num_in_icu := NULL]
+  x
+}
+
+x1 <- load_step(dict["crea"], cache = TRUE)
+x2 <- mutate_step(x1, ~ cummin(.), by = id_var(x1))
+x3 <- function_step(x2, baseline_candidates)
+x4 <- summary_step(x3, "last")
+x5 <- filter_step(x4, ~ . > 4)
+
+excl8 <- unique(x5[, id_vars(x5), with = FALSE])
+
 
 
 # Apply exclusions
-patients <- exclude(patients, mget(paste0("excl", 6:7)))
+patients <- exclude(patients, mget(paste0("excl", 6:8)))
 attrition <- as.data.table(patients[c("incl_n", "excl_n_total", "excl_n")])
 patients <- patients[['incl']]
 patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
@@ -93,32 +131,21 @@ patient_ids <- patients[, .SD, .SDcols = id_var(patients)]
 # Prepare data ------------------------------------------------------------
 
 # Get predictors
-dyn <- load_step(dict[dynamic_vars], interval=time_unit(freq), cache = TRUE)
+dyn <- load_step(dict[dynamic_vars], cache = TRUE)
 sta <- load_step(dict[static_vars], cache = TRUE)
 
 # Transform all variables into the target format
-assert_that(outcome_type == "static", time_flow == "sequential")
+assert_that(outcome_type == "dynamic", time_flow == "sequential")
 
-map_to_patients <- function(x) {
-  grid <- patients[, .SD, .SDcols = id_var(patients)]
-  merge(grid, x, all.x = TRUE)
-}
-
-outc_fmt <- function_step(outc, map_to_patients)
-outc_fmt <- mutate_step(outc_fmt, ricu::replace_na, val = FALSE)
-outc_fmt <- mutate_step(outc_fmt, as.integer)
-# TODO: make step to add/remove columns
-ind <- index_var(outc_fmt)
-outc_fmt[, c(ind) := NULL]
-rename_cols(outc_fmt, c("stay_id", "label"), by_ref = TRUE)
+outc_fmt <- function_step(outc, map_to_grid)
+outc_fmt <- function_step(outc_fmt, outcome_window, window = c(6L, 6L))
+rename_cols(outc_fmt, c("stay_id", "time", "label"), by_ref = TRUE)
 
 dyn_fmt <- function_step(dyn, map_to_grid)
-dyn_fmt <- filter_step(dyn_fmt, patients)
 rename_cols(dyn_fmt, c("stay_id", "time"), meta_vars(dyn_fmt), by_ref = TRUE)
 
-sta_fmt <- function_step(sta, map_to_patients)
+sta_fmt <- sta[patient_ids]  # TODO: make into step
 rename_cols(sta_fmt, c("stay_id"), id_vars(sta), by_ref = TRUE)
-
 
 
 # Write to disk -----------------------------------------------------------

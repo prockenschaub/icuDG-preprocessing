@@ -1,0 +1,40 @@
+{
+  "fgn": {
+    "sources": {
+      "aumc": [
+        {
+          "ids": [6776, 9989, 10175],
+          "table": "numericitems",
+          "sub_var": "itemid",
+          "callback": "convert_unit(binary_op(`*`, 1000 / 10), 'mg/dL')"
+        }
+      ]
+    }
+  },
+  "mchc": {
+    "sources": {
+      "hirid": [
+        {
+          "ids": 24000170,
+          "table": "observations",
+          "sub_var": "variableid",
+          "callback": "convert_unit(binary_op(`*`, 0.1), '%')",
+          "class": "hrd_itm"
+        }
+      ]
+    }
+  },
+  "neut": {
+    "sources": {
+      "hirid": [
+        {
+          "ids": 24000550,
+          "table": "observations",
+          "sub_var": "variableid",
+          "class": "hrd_itm",
+          "callback": "blood_cell_ratio"
+        }
+      ]
+    }
+  }
+}
