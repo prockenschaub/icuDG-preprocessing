@@ -1,4 +1,4 @@
-# Patient cohorts for deep learning-based early warning in the intensive care unit
+# Patient cohorts for Yet Another ICU Benchmark - Setting the Standard for Clinical Prediction Modeling
 
 ## Paper
 
