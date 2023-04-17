@@ -39,8 +39,8 @@ The code in this repository heavily utilises the `ricu` R package, without which
 Run the following commands to clone this repo:
 
 ```
-git clone https://github.com/prockenschaub/icuDG-preprocessing.git
-cd icuDG-preprocessing/
+git clone https://github.com/rvandewater/YAIB-cohorts.git
+cd YAIB-cohorts
 ```
 
 All data extractions were run using R 4.2.2 on an Apple M1 Max with Ventura 13.2.1. An `renv` lock file was created to install all necessary package dependencies. To recreate the environment, start an R session and call the following commands: 
