@@ -3,12 +3,12 @@ library(assertthat)
 library(rlang)
 library(data.table)
 library(vctrs)
-library(ricu)
+library(yaml)
 
-source("R/misc.R")
-source("R/steps.R")
-source("R/sequential.R")
-source("R/obs_time.R")
+source("src/misc.R")
+source("src/steps.R")
+source("src/sequential.R")
+source("src/obs_time.R")
 
 
 # Create a parser
@@ -17,8 +17,8 @@ p <- add_argument(p, "--src", help="source database", default="miiv")
 argv <- parse_args(p)
 
 src <- argv$src 
-conf <- ricu:::read_json("config.json")
-path <- file.path(conf$output_dir, "sepsis_moor")
+conf <- yaml.load_file("../config.yaml")
+path <- file.path(conf$out_dir, "sepsis_moor")
 
 
 cncpt_env <- new.env()
@@ -47,7 +47,7 @@ patients <- stay_windows(src, interval = time_unit(freq))
 patients <- as_win_tbl(patients, index_var = "start", dur_var = "end", interval = time_unit(freq))
 
 # Only keep patients in the base cohort (see base_cohort.R)
-base <- arrow::read_parquet(file.path(conf$output_dir, "base", src, "sta.parquet"))
+base <- arrow::read_parquet(file.path(conf$out_dir, "base", src, "sta.parquet"))
 patients <- patients[id_col(patients) %in% id_col(base)]
 
 
