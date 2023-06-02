@@ -1,4 +1,4 @@
-# Patient cohorts for Yet Another ICU Benchmark - Setting the Standard for Clinical Prediction Modeling
+# Generating Patient cohorts for Yet Another ICU Benchmark
 
 ## Paper
 
