@@ -1,6 +1,6 @@
-# Generating Patient cohorts for Yet Another ICU Benchmark
+![YAIB logo](https://github.com/rvandewater/YAIB/blob/development/docs/figures/yaib_logo.png)
+# Generating Patient cohorts for _Yet Another ICU Benchmark_
 
-## Paper
 
 This repo uses the `ricu` R package to derive patient cohorts for prediction tasks from the following intensive care databases: 
 | **Dataset**                 | [MIMIC-III](https://physionet.org/content/mimiciii/) / [IV](https://physionet.org/content/mimiciv/) | [eICU-CRD](https://physionet.org/content/eicu-crd/) | [HiRID](https://physionet.org/content/hirid/1.1.1/) | [AUMCdb](https://doi.org/10.17026/dans-22u-f8vd) |
@@ -25,11 +25,14 @@ We provide five common tasks for clinical prediction by default:
 | 3   | Sepsis                    | Hourly (within 6H) | Binary Classification |
 | 4   | Kidney Function(KF)       | Once per stay | Regression |
 | 5   | Length of Stay (LoS)      | Hourly (within 7D) | Regression |
+
 New tasks can be easily added. 
 The following repositories may be relevant as well:
 - [YAIB](https://github.com/rvandewater/YAIB): Main repository for YAIB.
 - [YAIB-models](https://github.com/rvandewater/YAIB-models): Pretrained models for YAIB.
 - [ReciPys](https://github.com/rvandewater/ReciPys): Preprocessing package for YAIB pipelines.
+
+## Paper
 
 If you use this code in your research, please cite the following publication:
 
@@ -40,14 +43,6 @@ If you use this code in your research, please cite the following publication:
 
 This paper can be found on arxiv: 
 
-
-## Acknowledgements
-
-The code in this repository heavily utilises the `ricu` R package, without which deriving these cohorts would have been much more difficult. If you use the code in this repo, please go give their repo a star :)
-
-This repo is based on earlier work by [Rockenschaub et al. (2023)](https://arxiv.org/abs/2303.15354), which can be found at https://github.com/prockenschaub/icuDG-preprocessing
-
-
 ## To replicate the cohorts:
 
 Run the following commands to clone this repo:
@@ -56,7 +51,6 @@ Run the following commands to clone this repo:
 git clone https://github.com/rvandewater/YAIB-cohorts.git
 cd YAIB-cohorts
 ```
-
 Once you have cloned the repo, all cohorts can be created directly from within R or via an interface from python. Instructions for each can be found at: 
 
 - R: [README.md](R/README.md)
@@ -64,6 +58,11 @@ Once you have cloned the repo, all cohorts can be created directly from within R
 
 Note: due to some recent bug fixes in ricu, the extracted cohorts might differ marginally to those published in the benchmarking paper. 
 
+## Acknowledgements
+
+The code in this repository heavily utilises the `ricu` R package, without which deriving these cohorts would have been much more difficult. If you use the code in this repo, please go give their repo a star :)
+
+This repo is based on earlier work by [Rockenschaub et al. (2023)](https://arxiv.org/abs/2303.15354), which can be found at https://github.com/prockenschaub/icuDG-preprocessing
 
 ## License
 This source code is released under the MIT license, included [here](LICENSE).
