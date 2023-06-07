@@ -2,13 +2,34 @@
 
 ## Paper
 
-This repo uses the `ricu` R package to derive patient cohorts for prediction tasks from the following four intensive care databases: 
+This repo uses the `ricu` R package to derive patient cohorts for prediction tasks from the following intensive care databases: 
+| **Dataset**                 | [MIMIC-III](https://physionet.org/content/mimiciii/) / [IV](https://physionet.org/content/mimiciv/) | [eICU-CRD](https://physionet.org/content/eicu-crd/) | [HiRID](https://physionet.org/content/hirid/1.1.1/) | [AUMCdb](https://doi.org/10.17026/dans-22u-f8vd) |
+|-------------------------|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------|-----------------------------------------------------|--------------------------------------------------|
+| **Admissions**              | 40k / 73k                                                                                           | 200k                                                | 33k                                                 | 23k                                              |
+| **Version**                 | v1.4 / v2.2                                                                                         | v2.0                                                | v1.1.1                                              | v1.0.2                                           |                                                     |                                                     |                                                  |
+| **Frequency** (time-series) | 1 hour                                                                                              | 5 minutes                                           | 2 / 5 minutes                                       | up to 1 minute                                   |
+| **Originally published**    | 2015  / 2020                                                                                        | 2017                                                | 2020                                                | 2019                                             |                                                                                                     |                                                     |                                                     |                                                  |
+| **Origin**                  | USA                                                                                                 | USA                                                 | Switzerland                                         | Netherlands                                      |
 
-* [AUMCdb](https://github.com/AmsterdamUMC/AmsterdamUMCdb)
+New datasets can also be added. We are currently working on a package to make this process as smooth as possible.
+<!-- * [AUMCdb](https://github.com/AmsterdamUMC/AmsterdamUMCdb)
 * [HiRID](https://hirid.intensivecare.ai/)
 * [eICU](https://eicu-crd.mit.edu/)
-* [MIMIC IV](https://mimic.mit.edu/)
+* [MIMIC IV](https://mimic.mit.edu/) -->
+We provide five common tasks for clinical prediction by default:
 
+| No  | Task                 | Frequency        | Type                                | 
+|-----|---------------------------|--------------------|-------------------------------------|
+| 1   | ICU Mortality             | Once per Stay (after 24H) | Binary Classification  |
+| 2   | Acute Kidney Injury (AKI) | Hourly (within 6H) | Binary Classification |
+| 3   | Sepsis                    | Hourly (within 6H) | Binary Classification |
+| 4   | Kidney Function(KF)       | Once per stay | Regression |
+| 5   | Length of Stay (LoS)      | Hourly (within 7D) | Regression |
+New tasks can be easily added. 
+The following repositories may be relevant as well:
+- [YAIB](https://github.com/rvandewater/YAIB): Main repository for YAIB.
+- [YAIB-models](https://github.com/rvandewater/YAIB-models): Pretrained models for YAIB.
+- [ReciPys](https://github.com/rvandewater/ReciPys): Preprocessing package for YAIB pipelines.
 
 If you use this code in your research, please cite the following publication:
 
