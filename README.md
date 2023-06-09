@@ -1,5 +1,5 @@
 ![YAIB logo](https://github.com/rvandewater/YAIB/blob/development/docs/figures/yaib_logo.png)
-# Generating Patient cohorts for _Yet Another ICU Benchmark_
+# Generating Patient cohorts for 🧪 _Yet Another ICU Benchmark_
 
 
 This repo uses the `ricu` R package to derive patient cohorts for prediction tasks from the following intensive care databases: 
@@ -32,16 +32,27 @@ The following repositories may be relevant as well:
 - [YAIB-models](https://github.com/rvandewater/YAIB-models): Pretrained models for YAIB.
 - [ReciPys](https://github.com/rvandewater/ReciPys): Preprocessing package for YAIB pipelines.
 
-## Paper
+## 📄 Paper
 
 If you use this code in your research, please cite the following publication:
 
 ```
-
-
+@article{vandewaterYetAnotherICUBenchmark2023,
+	title = {Yet Another ICU Benchmark: A Flexible Multi-Center Framework for Clinical ML},
+	shorttitle = {Yet Another ICU Benchmark},
+	url = {http://arxiv.org/abs/2306.05109},
+	language = {en},
+	urldate = {2023-06-09},
+	publisher = {arXiv},
+	author = {van de Water, Robin and Schmidt, Hendrik and Elbers, Paul and Thoral, Patrick and Arnrich, Bert and Rockenschaub, Patrick},
+	month = jun,
+	year = {2023},
+	note = {arXiv:2306.05109 [cs]},
+	keywords = {Computer Science - Machine Learning},
+}
 ```
 
-This paper can be found on arxiv: 
+This paper can also be found on arxiv: https://arxiv.org/pdf/2306.05109.pdf
 
 ## To replicate the cohorts:
 
