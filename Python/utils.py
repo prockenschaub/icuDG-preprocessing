@@ -14,22 +14,34 @@ def output_clairvoyance(data_dir, save_dir, task_type="static"):
 
     """
 
+    # Read in parquet files
     outc = pq.read_table(os.path.join(data_dir, 'outc.parquet')).to_pandas()
     dyn = pq.read_table(os.path.join(data_dir, 'dyn.parquet')).to_pandas()
     sta = pq.read_table(os.path.join(data_dir, 'sta.parquet')).to_pandas()
 
+    # Rename as clairvoyance expects id column to be named id
+    outc.rename(columns={"stay_id": "id"}, inplace=True)
+    dyn.rename(columns={"stay_id": "id"}, inplace=True)
+    sta.rename(columns={"stay_id": "id"}, inplace=True)
+
     os.makedirs(save_dir, exist_ok=True)
-    dyn = dyn.melt(id_vars=['stay_id', 'time'])
+    # Turn dynamic data into long format as clairvoyance expects it
+    dyn = dyn.melt(id_vars=['id', 'time'])
+    # Remove the null values for the missing values
     dyn = dyn[~pd.isnull(dyn['value'])]
+    # Split data as clairvoyance expects seperate train and test data
     data = make_train_test({"static": sta, "dynamic": dyn, "outcome": outc}, task_type=task_type, seed=42, train_size=0.8)
     for key, value in data.items():
+        # Merge the outcome as Clairvoyance has no seperate outcome file
         if task_type == "static":
-            value["static"] = value["static"].merge(value["outcome"], on='stay_id', how='left')
+            value["static"] = value["static"].merge(value["outcome"], on='id', how='left')
         else:
-            value["dynamic"] = value["dynamic"].merge(value["outcome"], on='stay_id', how='left')
+            # Merge on time as well as id for each dynamic value.
+            value["dynamic"] = value["dynamic"].merge(value["outcome"], on=['id',"time"], how='left')
     for key, value in data.items():
-        value["static"].to_csv(os.path.join(save_dir, f'static_{key}.csv'), index=False)
-        value["dynamic"].to_csv(os.path.join(save_dir, f'dynamic_{key}.csv'), index=False)
+        # Save data as csv files
+        value["static"].to_csv(os.path.join(save_dir, f'static_{key}_data.csv'), index=False)
+        value["dynamic"].to_csv(os.path.join(save_dir, f'temporal_{key}_data.csv'), index=False)
 
 
 def make_train_test(
@@ -50,7 +62,7 @@ def make_train_test(
         Input data divided into 'train', 'val', and 'test'.
     """
     # ID variable
-    id = "stay_id"
+    id = "id"
     label = "label"
 
     # Get stay IDs from outcome segment
@@ -73,22 +85,8 @@ def make_train_test(
     }
 
     data_split = {"train": {}, "test": {}}
-    for split in split_ids.keys():  # Loop through splits (train / val / test)
-        # data_split[split] = {"train":{}, "test":{}}
+    for split in split_ids.keys():  # Loop through splits (train  / test)
         data_split[split]["static"] = data["static"].merge(split_ids[split], on=id, how="right", sort=True)
         data_split[split]["dynamic"] = data["dynamic"].merge(split_ids[split], on=id, how="right", sort=True)
         data_split[split]["outcome"] = data["outcome"].merge(split_ids[split], on=id, how="right", sort=True)
-
-    # for fold in split.keys():  # Loop through splits (train / val / test)
-    #     # Loop through segments (DYNAMIC / STATIC / OUTCOME)
-    #     # set sort to true to make sure that IDs are reordered after scrambling earlier
-    #     data_split[fold] = {
-    #         data_type: data[data_type].merge(split[fold], on=id, how="right", sort=True) for data_type in data.keys()
-    #     }
-    # # Maintain compatibility with test split
-    # data_split[Split.test] = copy.deepcopy(data_split[Split.val])
     return data_split
-
-
-output_clairvoyance(data_dir=Path(r'C:\Users\Robin\Downloads\demo_data\aki\mimic_demo'),
-                    save_dir=Path(r'C:\Users\Robin\Downloads\demo_data\aki\mimic_demo\clairvoyance'), task_type="dynamic")
