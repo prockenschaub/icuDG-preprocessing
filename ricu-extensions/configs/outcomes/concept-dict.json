@@ -1,11 +1,4 @@
 {
-  "circ_fail": {
-    "description": "circulatory failure",
-    "concepts": ["map", "cf_treat", "lact"],
-    "category": "outcome",
-    "callback": "circ_fail",
-    "class": "rec_cncpt"
-  },
   "death_hosp": {
     "class": "lgl_cncpt",
     "description": "ICU mortality",

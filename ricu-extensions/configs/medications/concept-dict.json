@@ -166,13 +166,5 @@
         }
       ]
     }
-  },
-  "cf_treat": {
-    "description": "treatment for circulatory failure (vasopressors/inotropes)",
-    "category": "medications",
-    "concepts": ["epi_dur", "norepi_dur", "dopa_dur", "dobu_dur", "adh_dur", 
-                 "phn_dur", "levo_dur", "milrin_dur", "teophyllin_dur"],
-    "callback": "cf_treat",
-    "class": "rec_cncpt"
   }
 }
